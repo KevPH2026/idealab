@@ -65,8 +65,18 @@ export async function GET() {
   });
 }
 
+// 简单的共享密钥校验
+function verifyAdmin(req: NextRequest) {
+  const auth = req.headers.get("authorization");
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
+  return auth === `Bearer ${ADMIN_PASSWORD}`;
+}
+
 // PUT: 更新服务端模型配置（管理员接口）
 export async function PUT(req: NextRequest) {
+  if (!verifyAdmin(req)) {
+    return NextResponse.json({ error: "未授权" }, { status: 401 });
+  }
   try {
     const body = await req.json();
     const existing = readConfig() || {};

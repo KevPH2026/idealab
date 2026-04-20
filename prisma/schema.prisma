@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String?
+  image         String?
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts   Account[]
+  sessions   Session[]
+  quota      UserQuota?
+  apiKeys    ApiKey[]
+  turnSessions UserSession[]
+  turns      Turn[]
+  usageLogs  UsageLog[]
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// 用户配额（免费次数）
+model UserQuota {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  freeUsed       Int       @default(0)
+  freeTotal      Int       @default(5)
+  quotaResetAt   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// 用户自己配置的 API Keys
+model ApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  provider  String   // "openrouter" | "minimax"
+  key       String
+  label     String?
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+}
+
+// Skill 会话
+model UserSession {
+  id           String    @id @default(cuid())
+  userId       String
+  skillId      String
+  status       String    @default("active")  // active | completed | abandoned
+  totalTurns   Int       @default(0)
+  totalCharge  Float     @default(0)
+  startedAt    DateTime  @default(now())
+  endedAt      DateTime?
+  metadata     String?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  turns  Turn[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+// 每一轮对话
+model Turn {
+  id          String   @id @default(cuid())
+  userId      String
+  sessionId   String
+  turnNumber  Int
+  userMessage String?
+  aiResponse  String
+  skillId     String
+  modelUsed   String
+  keySource   String   // "user" | "server"
+  tokensUsed  Int?
+  cost        Float    @default(0)
+  imageUrls   String?
+  createdAt   DateTime @default(now())
+
+  user     User        @relation(fields: [userId], references: [id])
+  session  UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  usageLogs UsageLog[]
+
+  @@index([sessionId])
+}
+
+model UsageLog {
+  id        String   @id @default(cuid())
+  userId    String
+  turnId    String?
+  skillId   String
+  action    String
+  cost      Float    @default(0)
+  metadata  String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  turn  Turn? @relation(fields: [turnId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+}

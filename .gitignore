@@ -41,3 +41,5 @@ next-env.d.ts
 # Keep config/ directory tracked by creating a placeholder
 config/models.json
 config/models.json.local
+
+/src/generated/prisma
