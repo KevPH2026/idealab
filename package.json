@@ -2,7 +2,7 @@
   "name": "copyforge",
   "version": "0.1.0",
   "private": true,
-"scripts": {
+  "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "postinstall": "prisma generate",
@@ -13,6 +13,7 @@
     "@auth/core": "^0.41.2",
     "@auth/prisma-adapter": "2.11.2",
     "@base-ui/react": "^1.4.0",
+    "@notionhq/client": "^5.19.0",
     "@prisma/client": "5.22.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.104.0",

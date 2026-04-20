@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { prisma } from "@/lib/prisma";
+import { createUser, findUserByEmail } from "@/lib/notion";
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,29 +14,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "密码至少6位" }, { status: 400 });
     }
 
-    const existing = await prisma.user.findUnique({ where: { email } });
+    // Check existing
+    const existing = await findUserByEmail(email);
     if (existing) {
       return NextResponse.json({ error: "该邮箱已注册" }, { status: 409 });
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: passwordHash,
-        name: name || email.split("@")[0],
-        quota: {
-          create: {
-            freeUsed: 0,
-            freeTotal: 5,
-          },
-        },
-      },
+    const user = await createUser({
+      name: name || email.split("@")[0],
+      email,
+      passwordHash,
     });
 
     return NextResponse.json({ ok: true, userId: user.id });
   } catch (err: any) {
+    if (err.message === "USER_EXISTS") {
+      return NextResponse.json({ error: "该邮箱已注册" }, { status: 409 });
+    }
     return NextResponse.json({ error: err.message || "注册失败" }, { status: 500 });
   }
 }
