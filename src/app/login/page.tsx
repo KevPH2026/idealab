@@ -8,13 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Eye, EyeOff, AlertCircle, Check, Loader2 } from "lucide-react";
 
-function LoginForm() {
+function LoginForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
   const error = searchParams.get("error");
-
-  const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -48,7 +46,7 @@ function LoginForm() {
       if (!res.ok) { setMsg({ type: "error", text: data.error || "注册失败" }); }
       else {
         const result = await signIn("credentials", { email, password, redirect: false });
-        if (result?.error) { setMsg({ type: "error", text: "注册成功但登录失败，请手动登录" }); setMode("login"); }
+        if (result?.error) { setMsg({ type: "error", text: "注册成功但登录失败，请手动登录" }); }
         else { router.push(callbackUrl); }
       }
     } catch { setMsg({ type: "error", text: "网络错误，请重试" }); }
@@ -138,7 +136,7 @@ export default function LoginPage() {
           </div>
 
           <Suspense fallback={<div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>}>
-            <LoginForm key={mode} />
+            <LoginForm key={mode} mode={mode} />
           </Suspense>
         </Card>
 
