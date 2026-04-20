@@ -1,7 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -22,11 +21,6 @@ function LoginForm() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ type: "error" | "success"; text: string } | null>(null);
-
-  async function handleGoogle() {
-    setLoading(true);
-    await signIn("google", { callbackUrl });
-  }
 
   async function handleEmailLogin() {
     if (!email || !password) return;
@@ -63,7 +57,6 @@ function LoginForm() {
 
   return (
     <>
-      {/* Error from URL */}
       {error && (
         <div className="mb-4 flex items-center gap-2 text-red-500 text-sm bg-red-50 rounded-xl p-3">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -71,7 +64,6 @@ function LoginForm() {
         </div>
       )}
 
-      {/* Message */}
       {msg && (
         <div className={`mb-4 flex items-center gap-2 text-sm rounded-xl p-3 ${msg.type === "error" ? "text-red-500 bg-red-50" : "text-green-600 bg-green-50"}`}>
           {msg.type === "error" ? <AlertCircle className="w-4 h-4 flex-shrink-0" /> : <Check className="w-4 h-4 flex-shrink-0" />}
@@ -79,7 +71,6 @@ function LoginForm() {
         </div>
       )}
 
-      {/* Name (register only) */}
       {mode === "register" && (
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1.5">昵称（选填）</label>
@@ -87,13 +78,11 @@ function LoginForm() {
         </div>
       )}
 
-      {/* Email */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-1.5">邮箱</label>
         <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" className="h-11" autoFocus />
       </div>
 
-      {/* Password */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-1.5">密码</label>
         <div className="relative">
@@ -107,32 +96,12 @@ function LoginForm() {
         </div>
       </div>
 
-      {/* Submit */}
       <Button onClick={mode === "login" ? handleEmailLogin : handleRegister}
         disabled={loading || !email || !password}
         className="w-full h-11 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-xl font-medium">
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
         {mode === "login" ? "登录" : "注册"}
       </Button>
-
-      {/* Divider */}
-      <div className="flex items-center gap-4 my-5">
-        <div className="flex-1 h-px bg-gray-200" />
-        <span className="text-xs text-gray-400">或</span>
-        <div className="flex-1 h-px bg-gray-200" />
-      </div>
-
-      {/* Google OAuth */}
-      <button onClick={handleGoogle} disabled={loading}
-        className="w-full h-11 flex items-center justify-center gap-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors text-gray-700 font-medium text-sm">
-        <svg width="18" height="18" viewBox="0 0 18 18">
-          <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
-          <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
-          <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
-          <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
-        </svg>
-        使用 Google 登录
-      </button>
     </>
   );
 }
