@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { StepIndicator } from "@/components/StepIndicator";
 import { Step1Materials } from "@/components/Step1_Materials";
 import { Step2Scene } from "@/components/Step2_Scene";
@@ -25,9 +25,14 @@ import {
   Wand2,
   Image,
   PenLine,
+  ChevronLeft,
+  ChevronRight,
+  MousePointer,
+  BarChart2,
+  RefreshCw,
+  MessageSquare,
 } from "lucide-react";
 import { useWizardStore } from "@/lib/store";
-
 import { IdeaLabLogo } from "@/components/Logo";
 
 const WORKFLOW = [
@@ -43,46 +48,125 @@ const PAIN_POINTS = [
   { emoji: "📝", title: "文案改8遍还是不对", desc: "自己写没感觉，找人写又说不清需求，来回拉扯" },
 ];
 
-const DEMO_RESULT = {
-  input: {
-    type: "product photo",
-    desc: "一款极简无线耳机，白色，金属质感",
+// ─── Real Product Cases ──────────────────────────────────────────────────────
+const PRODUCT_CASES = [
+  {
+    id: "headphone",
+    emoji: "🎧",
+    name: "无线降噪耳机",
+    brand: "某科技品牌",
+    desc: "极简设计 · 32小时续航 · 深度降噪",
+    copy: "听过很多降噪耳机，直到戴上它——安静到能听见自己的呼吸。通勤党和出差人闭眼入。",
+    platform: "小红书",
+    tags: "#无线耳机 #降噪耳机 #数码好物",
+    color: "from-violet-600 to-indigo-600",
+    bg: "bg-violet-600/10",
+    border: "border-violet-500/30",
+    accent: "text-violet-400",
   },
-  analysis: {
-    style: "极简主义 / 苹果风 / 高端感",
-    scene: "小红书、Instagram、电商详情页",
-    audience: "25-35岁都市白领、数码爱好者",
-    colors: ["#F5F5F7", "#1D1D1F", "#0071E3"],
+  {
+    id: "coffee",
+    emoji: "☕",
+    name: "精品挂耳咖啡",
+    brand: "某咖啡工作室",
+    desc: "云南豆 · 手冲级风味 · 4种烘焙",
+    copy: "早起的仪式感，是手冲一包挂耳给的。云南精品豆，4种烘焙可选，比咖啡店现冲还好喝。",
+    platform: "朋友圈",
+    tags: "",
+    color: "from-amber-500 to-orange-600",
+    bg: "bg-amber-600/10",
+    border: "border-amber-500/30",
+    accent: "text-amber-400",
   },
-  copies: [
-    {
-      platform: "小红书",
-      text: "听过很多降噪耳机，直到戴上它——安静到能听见自己的呼吸。极简设计，续航32小时，通勤党和出差人闭眼入。",
-      tags: "#无线耳机 #降噪耳机 #数码好物 #通勤必备",
-    },
-    {
-      platform: "朋友圈",
-      text: "终于找到一副能让我'与世隔绝'的耳机。\n极简颜值 + 32小时续航 + 深度降噪，\n上班路上终于有了自己的安静角落。",
-      tags: "",
-    },
-    {
-      platform: "电商详情",
-      text: "【重新定义安静】采用行业领先主动降噪技术，隔绝高达40dB环境噪音。极简金属设计，32小时超长续航，充电10分钟续航5小时，为都市精英而生。",
-      tags: "",
-    },
-  ],
-};
+  {
+    id: "skincare",
+    emoji: "🧴",
+    name: "VC精华液",
+    brand: "某护肤品牌",
+    desc: "15%原型VC · 抗氧提亮 · 早晚可用",
+    copy: "用了3个月，原相机怼脸拍也不怕。15%原型VC不是盖的，暗沉黄气真的在退。",
+    platform: "小红书",
+    tags: "#VC精华 #早C晚A #护肤分享",
+    color: "from-rose-500 to-pink-600",
+    bg: "bg-rose-600/10",
+    border: "border-rose-500/30",
+    accent: "text-rose-400",
+  },
+  {
+    id: "shoes",
+    emoji: "👟",
+    name: "碳板跑鞋",
+    brand: "某运动品牌",
+    desc: "碳纤维推进板 · 42km续航 · 竞速之选",
+    copy: "每公里配速快了23秒。碳板推进板加持，长距离后半程依然有力，竞速党闭眼入。",
+    platform: "微博",
+    tags: "#碳板跑鞋 #跑步装备 #马拉松训练",
+    color: "from-cyan-500 to-blue-600",
+    bg: "bg-cyan-600/10",
+    border: "border-cyan-500/30",
+    accent: "text-cyan-400",
+  },
+  {
+    id: "watch",
+    emoji: "⌚",
+    name: "智能运动手表",
+    brand: "某科技品牌",
+    desc: "双频GPS · 14天续航 · 防水50米",
+    copy: "跑了30公里掉电12%，GPS定位精度到米级。登山、游泳、越野，一块表全搞定。",
+    platform: "抖音",
+    tags: "#智能手表 #运动装备 #跑步",
+    color: "from-emerald-500 to-teal-600",
+    bg: "bg-emerald-600/10",
+    border: "border-emerald-500/30",
+    accent: "text-emerald-400",
+  },
+  {
+    id: "bag",
+    emoji: "🎒",
+    name: "极简双肩包",
+    brand: "某生活方式品牌",
+    desc: "磁吸开合 · 16L容量 · 防泼水",
+    copy: "背上它，地铁里被人问了三次链接。磁吸开合超顺滑，16L装得下15寸电脑+换洗衣物。",
+    platform: "小红书",
+    tags: "#双肩包 #极简生活 #通勤包",
+    color: "from-slate-400 to-zinc-600",
+    bg: "bg-slate-600/10",
+    border: "border-slate-500/30",
+    accent: "text-slate-400",
+  },
+];
 
-const DEMO_STEPS = [
-  { label: "上传素材", detail: "产品图 / 链接 / 文字" },
-  { label: "AI 分析", detail: "识别风格、场景、受众" },
-  { label: "生成文案", detail: "3条不同角度营销文案" },
-  { label: "一键配图", detail: "AI 生成配套设计稿" },
+// ─── Demo Guide ─────────────────────────────────────────────────────────────
+const DEMO_GUIDE_STEPS = [
+  {
+    step: "01",
+    title: "丢素材进来",
+    desc: "产品图、链接、文字描述、截图，什么都行。AI 会自己理解。",
+    icon: <MousePointer className="w-5 h-5" />,
+  },
+  {
+    step: "02",
+    title: "AI 自动分析",
+    desc: "识别风格、受众、场景，提取产品核心卖点。",
+    icon: <Brain className="w-5 h-5" />,
+  },
+  {
+    step: "03",
+    title: "生成多条文案",
+    desc: "不同平台、不同角度，按需挑选直接用。",
+    icon: <PenLine className="w-5 h-5" />,
+  },
+  {
+    step: "04",
+    title: "说「换一版」继续调",
+    desc: "不满意就继续说，AI 重新生成，不花次数直到满意为止。",
+    icon: <RefreshCw className="w-5 h-5" />,
+  },
 ];
 
 const FEATURES = [
   { icon: <Layers className="w-5 h-5" />, title: "素材即输入", desc: "文件、链接、文字、截图，随便什么格式，丢进去就行" },
-  { icon: <Brain className="w-5 h-5" />, title: "AI 全自动", desc: "自动提炼卖点，生成3条不同角度的营销文案" },
+  { icon: <Brain className="w-5 h-5" />, title: "AI 全自动", desc: "自动提炼卖点，生成多条不同角度的营销文案" },
   { icon: <Image className="w-5 h-5" />, title: "一键出图", desc: "根据文案和风格，AI生成可下载的设计稿" },
   { icon: <Download className="w-5 h-5" />, title: "直接可用", desc: "PNG 高清输出，可直接用于朋友圈、社媒、电商" },
 ];
@@ -127,8 +211,49 @@ function ChangelogTag({ tags }: { tags: string[] }) {
   );
 }
 
+// ─── Case Card Component ────────────────────────────────────────────────────
+function CaseCard({ c, selected, onClick }: { c: typeof PRODUCT_CASES[0]; selected: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-shrink-0 w-52 rounded-2xl border transition-all duration-300 text-left ${
+        selected
+          ? `${c.bg} ${c.border} shadow-lg`
+          : "bg-white/[0.03] border-white/8 hover:bg-white/[0.06] hover:border-white/20"
+      }`}
+    >
+      <div className="p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${c.color} flex items-center justify-center text-xl shadow-lg`}>
+            {c.emoji}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-white truncate">{c.name}</p>
+            <p className="text-xs text-white/30 truncate">{c.brand}</p>
+          </div>
+        </div>
+        <p className="text-xs text-white/40 mb-3 line-clamp-2">{c.desc}</p>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${selected ? c.bg : "bg-white/10"} ${c.accent}`}>
+            {c.platform}
+          </span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 // ─── HomeContent (Dark Landing Page) ─────────────────────────────────────────
 function HomeContent({ onStart, onSettings }: { onStart: () => void; onSettings: () => void }) {
+  const [selectedCase, setSelectedCase] = useState(PRODUCT_CASES[0]);
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  const scrollCarousel = (dir: "left" | "right") => {
+    if (!carouselRef.current) return;
+    const amount = 220;
+    carouselRef.current.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
+  };
+
   return (
     <div className="min-h-screen bg-[#070711] text-white overflow-x-hidden">
 
@@ -148,23 +273,15 @@ function HomeContent({ onStart, onSettings }: { onStart: () => void; onSettings:
             <Button variant="ghost" size="sm" onClick={() => document.getElementById("pain")?.scrollIntoView({ behavior: "smooth" })} className="text-white/50 hover:text-white hover:bg-white/10 hidden md:block">
               痛点
             </Button>
+            <Button variant="ghost" size="sm" onClick={() => document.getElementById("cases")?.scrollIntoView({ behavior: "smooth" })} className="text-white/50 hover:text-white hover:bg-white/10 hidden md:block">
+              案例
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })} className="text-white/50 hover:text-white hover:bg-white/10 hidden md:block">
               功能
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => document.getElementById("cases")?.scrollIntoView({ behavior: "smooth" })} className="text-white/50 hover:text-white hover:bg-white/10 hidden md:block">
-              场景
             </Button>
             <Button variant="ghost" size="sm" onClick={() => document.getElementById("changelog")?.scrollIntoView({ behavior: "smooth" })} className="text-white/50 hover:text-white hover:bg-white/10 hidden md:block">
               更新
             </Button>
-            <a
-              href="/en"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-white/50 hover:text-white px-3 py-1.5 text-sm rounded-lg hover:bg-white/10 transition-all"
-            >
-              EN
-            </a>
             <Button
               size="sm"
               onClick={onStart}
@@ -178,25 +295,20 @@ function HomeContent({ onStart, onSettings }: { onStart: () => void; onSettings:
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative pt-40 pb-28 px-6 overflow-hidden">
-        {/* Background orbs */}
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-violet-700/20 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute top-0 right-1/4 w-80 h-80 bg-indigo-700/15 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute bottom-0 left-1/4 w-64 h-64 bg-purple-700/15 rounded-full blur-[80px] pointer-events-none" />
-
-        {/* Grid lines */}
         <div className="absolute inset-0 opacity-[0.03]" style={{
           backgroundImage: 'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)',
           backgroundSize: '60px 60px',
         }} />
 
         <div className="relative max-w-4xl mx-auto text-center">
-          {/* Badge */}
           <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-5 py-2 text-sm text-violet-300 mb-8 backdrop-blur-sm">
             <Wand2 className="w-4 h-4 text-violet-400" />
             <span>AI 驱动的新一代内容创作平台</span>
           </div>
 
-          {/* Headline */}
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.1]">
             丢素材，<span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-indigo-400 bg-clip-text text-transparent">5分钟</span>
             <br />
@@ -219,13 +331,12 @@ function HomeContent({ onStart, onSettings }: { onStart: () => void; onSettings:
               size="lg"
               variant="outline"
               className="h-14 px-10 border border-white/20 text-white/70 hover:text-white hover:bg-white/5 text-lg font-semibold rounded-2xl backdrop-blur-sm"
-              onClick={() => document.getElementById("pain")?.scrollIntoView({ behavior: "smooth" })}
+              onClick={() => document.getElementById("cases")?.scrollIntoView({ behavior: "smooth" })}
             >
-              了解更多
+              看实际案例
             </Button>
           </div>
 
-          {/* Stats */}
           <div className="mt-16 flex items-center justify-center gap-8 text-sm text-white/30">
             <div className="flex items-center gap-1.5">
               <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
@@ -316,131 +427,92 @@ function HomeContent({ onStart, onSettings }: { onStart: () => void; onSettings:
         </div>
       </section>
 
-      {/* ── Live Demo ─────────────────────────────────────────────────────── */}
+      {/* ── Demo Guide ─────────────────────────────────────────────────── */}
       <section className="py-24 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <p className="text-sm font-medium text-violet-400 mb-3 uppercase tracking-widest">实际效果</p>
-            <h2 className="text-4xl font-bold text-white mb-4">一个素材 → 多个平台的可用内容</h2>
-            <p className="text-lg text-white/40">点击任意平台标签查看对应文案，或继续调整</p>
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-14">
+            <p className="text-sm font-medium text-violet-400 mb-3 uppercase tracking-widest">怎么用</p>
+            <h2 className="text-4xl font-bold text-white mb-4">对话式生成，想怎么改就怎么改</h2>
+            <p className="text-lg text-white/40">像和设计师沟通一样，说人话就行</p>
           </div>
 
-          {/* Step indicator */}
-          <div className="flex items-center justify-center gap-2 mb-10">
-            {DEMO_STEPS.map((s, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <div className="flex flex-col items-center">
-                  <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-sm font-bold text-violet-300">
-                    {i + 1}
-                  </div>
-                  <div className="text-xs text-white/40 mt-1.5">{s.label}</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {DEMO_GUIDE_STEPS.map((s, i) => (
+              <div key={s.step} className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 hover:bg-white/[0.06] transition-all">
+                <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 mb-4">
+                  {s.icon}
                 </div>
-                {i < DEMO_STEPS.length - 1 && (
-                  <div className="w-12 h-px bg-violet-500/20 mx-1 mb-5" />
-                )}
+                <div className="text-xs text-violet-400 font-bold mb-2">{s.step}</div>
+                <h3 className="text-base font-bold text-white mb-2">{s.title}</h3>
+                <p className="text-sm text-white/40 leading-relaxed">{s.desc}</p>
               </div>
             ))}
           </div>
+        </div>
+      </section>
 
-          {/* Demo card */}
-          <div className="rounded-3xl border border-white/10 bg-white/[0.02] overflow-hidden shadow-2xl shadow-violet-950/20">
-            <div className="bg-white/[0.03] border-b border-white/5 px-6 py-4 flex items-center gap-3">
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-red-500/60" />
-                <div className="w-3 h-3 rounded-full bg-amber-500/60" />
-                <div className="w-3 h-3 rounded-full bg-green-500/60" />
-              </div>
-              <div className="text-xs text-white/30 font-mono">idealab.now — 实时生成演示</div>
+      {/* ── Product Cases ─────────────────────────────────────────────────── */}
+      <section id="cases" className="py-24 px-6 bg-white/[0.01] border-y border-white/5">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-end justify-between mb-10">
+            <div>
+              <p className="text-sm font-medium text-violet-400 mb-3 uppercase tracking-widest">真实案例</p>
+              <h2 className="text-4xl font-bold text-white">点击任意案例，查看生成效果</h2>
             </div>
+            <div className="hidden md:flex gap-2">
+              <button
+                onClick={() => scrollCarousel("left")}
+                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 text-white/50 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => scrollCarousel("right")}
+                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 text-white/50 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-0">
-              {/* Left: inputs */}
-              <div className="lg:col-span-2 border-r border-white/5 p-6 space-y-5">
-                {/* Material input */}
-                <div>
-                  <p className="text-xs font-semibold text-white/30 uppercase tracking-wider mb-3">📦 素材输入</p>
-                  <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/5">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-200 to-gray-400 flex items-center justify-center text-2xl shadow-lg">
-                        🎧
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-white">无线降噪耳机</p>
-                        <p className="text-xs text-white/40">产品图 · 白色极简款</p>
-                      </div>
-                    </div>
-                    <p className="text-xs text-white/50 italic">"极简设计，32小时续航，深度降噪"</p>
-                  </div>
-                </div>
+          {/* Horizontal carousel */}
+          <div
+            ref={carouselRef}
+            className="flex gap-4 overflow-x-auto scrollbar-hide pb-2"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
+            {PRODUCT_CASES.map((c) => (
+              <CaseCard
+                key={c.id}
+                c={c}
+                selected={selectedCase.id === c.id}
+                onClick={() => setSelectedCase(c)}
+              />
+            ))}
+          </div>
 
-                {/* AI Analysis */}
-                <div>
-                  <p className="text-xs font-semibold text-white/30 uppercase tracking-wider mb-3">🧠 AI 分析结果</p>
-                  <div className="space-y-2">
-                    {[
-                      { label: "风格", value: DEMO_RESULT.analysis.style },
-                      { label: "场景", value: DEMO_RESULT.analysis.scene },
-                      { label: "受众", value: DEMO_RESULT.analysis.audience },
-                    ].map((item) => (
-                      <div key={item.label} className="flex items-start gap-2">
-                        <span className="text-xs text-violet-400 font-medium min-w-8 pt-0.5">{item.label}</span>
-                        <span className="text-xs text-white/60">{item.value}</span>
-                      </div>
-                    ))}
-                    <div className="flex items-start gap-2">
-                      <span className="text-xs text-violet-400 font-medium min-w-8 pt-0.5">色彩</span>
-                      <div className="flex gap-1.5 mt-0.5">
-                        {DEMO_RESULT.analysis.colors.map((c) => (
-                          <div key={c} className="w-5 h-5 rounded-md border border-white/10" style={{ backgroundColor: c }} />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action */}
-                <div className="pt-2">
-                  <button
-                    onClick={onStart}
-                    className="w-full h-11 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-semibold hover:from-violet-500 hover:to-indigo-500 transition-all shadow-lg shadow-violet-900/30 flex items-center justify-center gap-2"
-                  >
-                    去试一下 →
-                  </button>
-                </div>
+          {/* Selected case preview */}
+          <div className={`mt-6 rounded-2xl border ${selectedCase.border} ${selectedCase.bg} p-6 transition-all`}>
+            <div className="flex items-center gap-4 mb-4">
+              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${selectedCase.color} flex items-center justify-center text-2xl shadow-lg`}>
+                {selectedCase.emoji}
               </div>
-
-              {/* Right: outputs */}
-              <div className="lg:col-span-3 p-6">
-                <p className="text-xs font-semibold text-white/30 uppercase tracking-wider mb-4">✍️ 生成的营销文案</p>
-                <div className="space-y-3">
-                  {DEMO_RESULT.copies.map((copy, i) => (
-                    <div
-                      key={i}
-                      className={`rounded-2xl p-4 border transition-all cursor-pointer hover:border-violet-500/30 ${
-                        i === 0
-                          ? "bg-violet-600/10 border-violet-500/30"
-                          : "bg-white/[0.03] border-white/8 hover:bg-white/[0.05]"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                          i === 0 ? "bg-violet-500/30 text-violet-300" : "bg-white/10 text-white/50"
-                        }`}>
-                          {copy.platform}
-                        </span>
-                      </div>
-                      <p className={`text-sm leading-relaxed ${i === 0 ? "text-white" : "text-white/70"}`}>
-                        {copy.text}
-                      </p>
-                      {copy.tags && (
-                        <p className="text-xs text-violet-400/70 mt-2">{copy.tags}</p>
-                      )}
-                    </div>
-                  ))}
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${selectedCase.bg} ${selectedCase.accent}`}>
+                    {selectedCase.platform}
+                  </span>
+                  <h3 className="text-lg font-bold text-white">{selectedCase.name}</h3>
                 </div>
-                <p className="text-xs text-white/20 mt-4 text-center">AI 生成 · 继续说"换一版"可重新生成</p>
+                <p className="text-sm text-white/40">{selectedCase.desc}</p>
               </div>
             </div>
+            <blockquote className="text-base text-white/80 leading-relaxed italic border-l-2 border-white/20 pl-4">
+              "{selectedCase.copy}"
+            </blockquote>
+            {selectedCase.tags && (
+              <p className={`text-sm mt-3 ${selectedCase.accent} opacity-70`}>{selectedCase.tags}</p>
+            )}
           </div>
         </div>
       </section>
@@ -472,7 +544,7 @@ function HomeContent({ onStart, onSettings }: { onStart: () => void; onSettings:
       </section>
 
       {/* ── Use Cases ───────────────────────────────────────────────────── */}
-      <section id="cases" className="py-24 px-6 bg-white/[0.01] border-y border-white/5">
+      <section id="usecases" className="py-24 px-6 bg-white/[0.01] border-y border-white/5">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <p className="text-sm font-medium text-violet-400 mb-3 uppercase tracking-widest">适用场景</p>
@@ -498,137 +570,147 @@ function HomeContent({ onStart, onSettings }: { onStart: () => void; onSettings:
       {/* ── CTA ──────────────────────────────────────────────────────────── */}
       <section className="py-28 px-6">
         <div className="max-w-3xl mx-auto text-center">
-          <div className="rounded-[32px] bg-gradient-to-br from-violet-900/60 via-indigo-900/60 to-purple-900/60 border border-violet-500/20 p-16 relative overflow-hidden shadow-2xl shadow-violet-950/50">
-            {/* Decorative glow */}
-            <div className="absolute top-0 right-0 w-72 h-72 bg-violet-600/20 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-56 h-56 bg-indigo-600/20 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/4 pointer-events-none" />
-
-            <div className="relative">
-              <div className="inline-flex items-center gap-2 bg-violet-500/20 border border-violet-400/20 rounded-full px-4 py-1.5 text-sm text-violet-300 mb-6">
-                <Clock className="w-4 h-4" />
-                <span>免费使用，无需信用卡</span>
-              </div>
-              <h2 className="text-4xl md:text-5xl font-bold mb-5 text-white">还在为内容创作烦恼？</h2>
-              <p className="text-xl text-white/50 mb-10">现在开始，5分钟出成品</p>
-              <Button
-                size="lg"
-                className="h-14 px-12 bg-white text-violet-700 hover:bg-violet-50 shadow-2xl text-lg font-bold rounded-2xl"
-                onClick={onStart}
-              >
-                免费开始创作 <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </div>
-          </div>
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            准备好告别内容焦虑了吗？
+          </h2>
+          <p className="text-xl text-white/40 mb-10">
+            注册后获得 5 次免费生成额度，说"好"之前不限次数调整
+          </p>
+          <Button
+            size="lg"
+            className="h-14 px-14 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-2xl shadow-violet-900/60 text-white text-lg font-semibold rounded-2xl border border-violet-500/30"
+            onClick={onStart}
+          >
+            立即开始创作 <ArrowRight className="w-5 h-5 ml-2" />
+          </Button>
+          <p className="text-sm text-white/20 mt-6">无需信用卡 · 5分钟上手 · 随时可停</p>
         </div>
       </section>
 
       {/* ── Changelog ───────────────────────────────────────────────────── */}
-      <section id="changelog" className="py-24 px-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="text-sm font-medium text-violet-400 mb-3 uppercase tracking-widest">版本记录</p>
-            <h2 className="text-4xl font-bold text-white mb-4">更新的每一步</h2>
-            <p className="text-lg text-white/40">持续迭代，只为更好的创作体验</p>
-          </div>
+      <section id="changelog" className="py-20 px-6 border-t border-white/5">
+        <div className="max-w-3xl mx-auto">
+          <p className="text-sm font-medium text-violet-400 mb-3 uppercase tracking-widest">更新日志</p>
+          <h2 className="text-2xl font-bold text-white mb-8">产品迭代记录</h2>
 
-          <div className="space-y-6">
-            {CHANGELOG.map((release, i) => (
-              <Card
-                key={release.version}
-                className={`bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden ${
-                  i === 0 ? "border-violet-500/30 shadow-lg shadow-violet-900/10" : ""
-                }`}
-              >
-                <div className="flex items-center justify-between px-8 py-5 border-b border-white/5">
-                  <div className="flex items-center gap-4">
-                    <span className="text-xl font-bold text-white">{release.version}</span>
-                    <span className="text-sm text-white/30">{release.date}</span>
-                    <ChangelogTag tags={release.tags} />
-                  </div>
+          <div className="space-y-8">
+            {CHANGELOG.map((cl) => (
+              <div key={cl.version} className="border border-white/10 rounded-2xl p-6 bg-white/[0.02]">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-lg font-bold text-white">{cl.version}</span>
+                  <span className="text-sm text-white/30">{cl.date}</span>
+                  <ChangelogTag tags={cl.tags} />
                 </div>
-                <ul className="px-8 py-6 space-y-3">
-                  {release.changes.map((c, j) => (
-                    <li key={j} className="flex items-start gap-3 text-white/60">
+                <ul className="space-y-2">
+                  {cl.changes.map((change) => (
+                    <li key={change} className="flex items-start gap-2 text-sm text-white/50">
                       <span className="text-violet-400 mt-0.5">·</span>
-                      <span>{c}</span>
+                      <span>{change}</span>
                     </li>
                   ))}
                 </ul>
-              </Card>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Footer ──────────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/5 py-10 px-6">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <IdeaLabLogo size={28} />
-            <span className="font-bold text-white/70">IdeaLab</span>
+      {/* ── Footer ───────────────────────────────────────────────────────── */}
+      <footer className="py-8 px-6 border-t border-white/5">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <IdeaLabLogo size={24} />
+            <span className="text-sm text-white/30">© 2026 IdeaLab. All rights reserved.</span>
           </div>
-          <p className="text-sm text-white/20">© 2026 IdeaLab · AI Content Creation Platform</p>
+          <div className="flex items-center gap-6 text-sm text-white/30">
+            <span>Made with ❤️ by WithHuman.ai</span>
+          </div>
         </div>
       </footer>
+
+      <style>{`
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+      `}</style>
     </div>
   );
 }
 
-// ─── WizardContent ───────────────────────────────────────────────────────────
-function WizardContent({ onBack, onSettings }: { onBack: () => void; onSettings: () => void }) {
-  const { step } = useWizardStore();
-
-  return (
-    <div className="min-h-screen bg-[#070711] text-white">
-      <header className="border-b border-white/5 bg-[#070711]/90 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <IdeaLabLogo size={34} />
-            <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">
-              IdeaLab
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={onSettings} className="text-white/40 hover:text-white hover:bg-white/10">
-              <Settings className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onBack}
-              className="border-white/20 text-white/60 hover:text-white hover:bg-white/10"
-            >
-              ← 返回首页
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-5xl mx-auto px-6 py-8">
-        <StepIndicator />
-        {step === 1 && <Step1Materials />}
-        {step === 2 && <Step2Scene />}
-        {step === 3 && <Step3Style />}
-        {step === 4 && <Step4Audience />}
-        {step === 5 && <Step5Generating />}
-      </main>
-    </div>
-  );
-}
-
-// ─── AppShell ────────────────────────────────────────────────────────────────
-export function AppShell() {
+// ─── App Shell ───────────────────────────────────────────────────────────────
+export default function HomePage() {
   const [showWizard, setShowWizard] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [step, setStep] = useState(1);
+  const [wizardKey, setWizardKey] = useState(0);
+  const { reset } = useWizardStore();
+
+  const handleStart = () => {
+    reset();
+    setWizardKey(k => k + 1);
+    setStep(1);
+    setShowWizard(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleClose = () => {
+    setShowWizard(false);
+    setStep(1);
+    reset();
+  };
+
+  const handleNext = () => setStep(s => Math.min(s + 1, 5));
+  const handleBack = () => setStep(s => Math.max(s - 1, 1));
+  const handleSettingsClose = () => setShowSettings(false);
 
   return (
-    <>
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
-      {showWizard ? (
-        <WizardContent onBack={() => setShowWizard(false)} onSettings={() => setShowSettings(true)} />
+    <div className="min-h-screen bg-[#070711]">
+      {!showWizard ? (
+        <HomeContent onStart={handleStart} onSettings={() => setShowSettings(true)} />
       ) : (
-        <HomeContent onStart={() => setShowWizard(true)} onSettings={() => setShowSettings(true)} />
+        <div className="min-h-screen flex flex-col">
+          <header className="sticky top-0 z-50 bg-[#070711]/90 backdrop-blur-xl border-b border-white/5 px-6 py-4">
+            <div className="max-w-3xl mx-auto flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <IdeaLabLogo size={32} />
+                <span className="font-bold text-lg bg-gradient-to-r from-purple-400 via-violet-400 to-indigo-400 bg-clip-text text-transparent">
+                  IdeaLab
+                </span>
+              </div>
+              <Button variant="ghost" size="sm" onClick={handleClose} className="text-white/50 hover:text-white">
+                关闭
+              </Button>
+            </div>
+          </header>
+
+          <main className="flex-1 flex flex-col items-center px-6 py-10">
+            <div className="w-full max-w-3xl">
+              <StepIndicator />
+
+              <div className="mt-8">
+                {step === 1 && <Step1Materials />}
+                {step === 2 && <Step2Scene />}
+                {step === 3 && <Step3Style />}
+                {step === 4 && <Step4Audience />}
+                {step === 5 && <Step5Generating />}
+              </div>
+
+              {step < 5 && (
+                <div className="flex gap-3 mt-8">
+                  {step > 1 && (
+                    <Button variant="outline" onClick={handleBack} className="flex-1 h-12 border-white/20 text-white/70 hover:text-white rounded-xl">
+                      上一步
+                    </Button>
+                  )}
+                  <Button onClick={handleNext} className="flex-1 h-12 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-xl shadow-lg shadow-violet-900/30">
+                    下一步
+                  </Button>
+                </div>
+              )}
+            </div>
+          </main>
+        </div>
       )}
-    </>
+
+      {showSettings && <SettingsModal onClose={handleSettingsClose} />}
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { AppShell } from "@/components/HomePage";
+import HomePage from "@/components/HomePage";
 
 export default function Home() {
-  return <AppShell />;
+  return <HomePage />;
 }
