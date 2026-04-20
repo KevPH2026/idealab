@@ -43,6 +43,43 @@ const PAIN_POINTS = [
   { emoji: "📝", title: "文案改8遍还是不对", desc: "自己写没感觉，找人写又说不清需求，来回拉扯" },
 ];
 
+const DEMO_RESULT = {
+  input: {
+    type: "product photo",
+    desc: "一款极简无线耳机，白色，金属质感",
+  },
+  analysis: {
+    style: "极简主义 / 苹果风 / 高端感",
+    scene: "小红书、Instagram、电商详情页",
+    audience: "25-35岁都市白领、数码爱好者",
+    colors: ["#F5F5F7", "#1D1D1F", "#0071E3"],
+  },
+  copies: [
+    {
+      platform: "小红书",
+      text: "听过很多降噪耳机，直到戴上它——安静到能听见自己的呼吸。极简设计，续航32小时，通勤党和出差人闭眼入。",
+      tags: "#无线耳机 #降噪耳机 #数码好物 #通勤必备",
+    },
+    {
+      platform: "朋友圈",
+      text: "终于找到一副能让我'与世隔绝'的耳机。\n极简颜值 + 32小时续航 + 深度降噪，\n上班路上终于有了自己的安静角落。",
+      tags: "",
+    },
+    {
+      platform: "电商详情",
+      text: "【重新定义安静】采用行业领先主动降噪技术，隔绝高达40dB环境噪音。极简金属设计，32小时超长续航，充电10分钟续航5小时，为都市精英而生。",
+      tags: "",
+    },
+  ],
+};
+
+const DEMO_STEPS = [
+  { label: "上传素材", detail: "产品图 / 链接 / 文字" },
+  { label: "AI 分析", detail: "识别风格、场景、受众" },
+  { label: "生成文案", detail: "3条不同角度营销文案" },
+  { label: "一键配图", detail: "AI 生成配套设计稿" },
+];
+
 const FEATURES = [
   { icon: <Layers className="w-5 h-5" />, title: "素材即输入", desc: "文件、链接、文字、截图，随便什么格式，丢进去就行" },
   { icon: <Brain className="w-5 h-5" />, title: "AI 全自动", desc: "自动提炼卖点，生成3条不同角度的营销文案" },
@@ -275,6 +312,135 @@ function HomeContent({ onStart, onSettings }: { onStart: () => void; onSettings:
                 <span className="text-sm font-medium text-white/60">{w.label}</span>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Live Demo ─────────────────────────────────────────────────────── */}
+      <section className="py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="text-sm font-medium text-violet-400 mb-3 uppercase tracking-widest">实际效果</p>
+            <h2 className="text-4xl font-bold text-white mb-4">一个素材 → 多个平台的可用内容</h2>
+            <p className="text-lg text-white/40">点击任意平台标签查看对应文案，或继续调整</p>
+          </div>
+
+          {/* Step indicator */}
+          <div className="flex items-center justify-center gap-2 mb-10">
+            {DEMO_STEPS.map((s, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="flex flex-col items-center">
+                  <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-sm font-bold text-violet-300">
+                    {i + 1}
+                  </div>
+                  <div className="text-xs text-white/40 mt-1.5">{s.label}</div>
+                </div>
+                {i < DEMO_STEPS.length - 1 && (
+                  <div className="w-12 h-px bg-violet-500/20 mx-1 mb-5" />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Demo card */}
+          <div className="rounded-3xl border border-white/10 bg-white/[0.02] overflow-hidden shadow-2xl shadow-violet-950/20">
+            <div className="bg-white/[0.03] border-b border-white/5 px-6 py-4 flex items-center gap-3">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-red-500/60" />
+                <div className="w-3 h-3 rounded-full bg-amber-500/60" />
+                <div className="w-3 h-3 rounded-full bg-green-500/60" />
+              </div>
+              <div className="text-xs text-white/30 font-mono">idealab.now — 实时生成演示</div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-0">
+              {/* Left: inputs */}
+              <div className="lg:col-span-2 border-r border-white/5 p-6 space-y-5">
+                {/* Material input */}
+                <div>
+                  <p className="text-xs font-semibold text-white/30 uppercase tracking-wider mb-3">📦 素材输入</p>
+                  <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-200 to-gray-400 flex items-center justify-center text-2xl shadow-lg">
+                        🎧
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-white">无线降噪耳机</p>
+                        <p className="text-xs text-white/40">产品图 · 白色极简款</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-white/50 italic">"极简设计，32小时续航，深度降噪"</p>
+                  </div>
+                </div>
+
+                {/* AI Analysis */}
+                <div>
+                  <p className="text-xs font-semibold text-white/30 uppercase tracking-wider mb-3">🧠 AI 分析结果</p>
+                  <div className="space-y-2">
+                    {[
+                      { label: "风格", value: DEMO_RESULT.analysis.style },
+                      { label: "场景", value: DEMO_RESULT.analysis.scene },
+                      { label: "受众", value: DEMO_RESULT.analysis.audience },
+                    ].map((item) => (
+                      <div key={item.label} className="flex items-start gap-2">
+                        <span className="text-xs text-violet-400 font-medium min-w-8 pt-0.5">{item.label}</span>
+                        <span className="text-xs text-white/60">{item.value}</span>
+                      </div>
+                    ))}
+                    <div className="flex items-start gap-2">
+                      <span className="text-xs text-violet-400 font-medium min-w-8 pt-0.5">色彩</span>
+                      <div className="flex gap-1.5 mt-0.5">
+                        {DEMO_RESULT.analysis.colors.map((c) => (
+                          <div key={c} className="w-5 h-5 rounded-md border border-white/10" style={{ backgroundColor: c }} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action */}
+                <div className="pt-2">
+                  <button
+                    onClick={onStart}
+                    className="w-full h-11 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-semibold hover:from-violet-500 hover:to-indigo-500 transition-all shadow-lg shadow-violet-900/30 flex items-center justify-center gap-2"
+                  >
+                    去试一下 →
+                  </button>
+                </div>
+              </div>
+
+              {/* Right: outputs */}
+              <div className="lg:col-span-3 p-6">
+                <p className="text-xs font-semibold text-white/30 uppercase tracking-wider mb-4">✍️ 生成的营销文案</p>
+                <div className="space-y-3">
+                  {DEMO_RESULT.copies.map((copy, i) => (
+                    <div
+                      key={i}
+                      className={`rounded-2xl p-4 border transition-all cursor-pointer hover:border-violet-500/30 ${
+                        i === 0
+                          ? "bg-violet-600/10 border-violet-500/30"
+                          : "bg-white/[0.03] border-white/8 hover:bg-white/[0.05]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                          i === 0 ? "bg-violet-500/30 text-violet-300" : "bg-white/10 text-white/50"
+                        }`}>
+                          {copy.platform}
+                        </span>
+                      </div>
+                      <p className={`text-sm leading-relaxed ${i === 0 ? "text-white" : "text-white/70"}`}>
+                        {copy.text}
+                      </p>
+                      {copy.tags && (
+                        <p className="text-xs text-violet-400/70 mt-2">{copy.tags}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-white/20 mt-4 text-center">AI 生成 · 继续说"换一版"可重新生成</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
