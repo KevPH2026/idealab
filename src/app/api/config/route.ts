@@ -19,7 +19,7 @@ function writeConfig(data: any) {
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(data, null, 2));
 }
 
-// GET: 返回服务端模型配置（不暴露 key 明文，只返回是否配置）
+// GET: 返回服务端模型配置（不暴露 key 明文）
 export async function GET() {
   const config = readConfig();
   if (!config) {
@@ -34,6 +34,32 @@ export async function GET() {
       visionModel: config.openrouter?.visionModel || "qwen/qwen2.5-vl-72b-instruct",
       copyModel: config.openrouter?.copyModel || "openai/gpt-4o",
       imageModel: config.minimax?.imageModel || "image-01",
+      visionTemp: config.openrouter?.visionTemp ?? 0.7,
+      copyTemp: config.openrouter?.copyTemp ?? 0.8,
+      visionMaxTokens: config.openrouter?.visionMaxTokens ?? 2048,
+      copyMaxTokens: config.openrouter?.copyMaxTokens ?? 1024,
+    },
+    image: {
+      aspectRatio: config.image?.aspectRatio || "1:1",
+      quality: config.image?.quality || "medium",
+      style: config.image?.style || "auto",
+    },
+    prompts: {
+      visionTemplate: config.prompts?.visionTemplate || "",
+      copyTemplate: config.prompts?.copyTemplate || "",
+    },
+    output: {
+      language: config.output?.language || "zh",
+      variations: config.output?.variations || 1,
+    },
+    features: {
+      enableLogoWatermark: config.features?.enableLogoWatermark ?? false,
+      enableAutoRetry: config.features?.enableAutoRetry ?? true,
+      enableMultiFormat: config.features?.enableMultiFormat ?? false,
+    },
+    branding: {
+      brandName: config.branding?.brandName || "IdeaLab",
+      brandTagline: config.branding?.brandTagline || "AI灵感创作平台",
     },
     updatedAt: config.updatedAt,
   });
@@ -44,6 +70,7 @@ export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
     const existing = readConfig() || {};
+
     const updated = {
       ...existing,
       openrouter: {
@@ -52,6 +79,10 @@ export async function PUT(req: NextRequest) {
         enabled: body.openrouterEnabled ?? true,
         visionModel: body.visionModel || existing.openrouter?.visionModel || "qwen/qwen2.5-vl-72b-instruct",
         copyModel: body.copyModel || existing.openrouter?.copyModel || "openai/gpt-4o",
+        visionTemp: body.visionTemp ?? existing.openrouter?.visionTemp ?? 0.7,
+        copyTemp: body.copyTemp ?? existing.openrouter?.copyTemp ?? 0.8,
+        visionMaxTokens: body.visionMaxTokens ?? existing.openrouter?.visionMaxTokens ?? 2048,
+        copyMaxTokens: body.copyMaxTokens ?? existing.openrouter?.copyMaxTokens ?? 1024,
       },
       minimax: {
         ...existing.minimax,
@@ -59,9 +90,32 @@ export async function PUT(req: NextRequest) {
         enabled: body.minimaxEnabled ?? true,
         imageModel: body.imageModel || existing.minimax?.imageModel || "image-01",
       },
+      image: {
+        aspectRatio: body.imageAspectRatio || existing.image?.aspectRatio || "1:1",
+        quality: body.imageQuality || existing.image?.quality || "medium",
+        style: body.imageStyle || existing.image?.style || "auto",
+      },
+      prompts: {
+        visionTemplate: body.visionPromptTemplate || existing.prompts?.visionTemplate || "",
+        copyTemplate: body.copyPromptTemplate || existing.prompts?.copyTemplate || "",
+      },
+      output: {
+        language: body.outputLanguage || existing.output?.language || "zh",
+        variations: body.outputVariations ?? existing.output?.variations ?? 1,
+      },
+      features: {
+        enableLogoWatermark: body.enableLogoWatermark ?? existing.features?.enableLogoWatermark ?? false,
+        enableAutoRetry: body.enableAutoRetry ?? existing.features?.enableAutoRetry ?? true,
+        enableMultiFormat: body.enableMultiFormat ?? existing.features?.enableMultiFormat ?? false,
+      },
+      branding: {
+        brandName: body.brandName || existing.branding?.brandName || "IdeaLab",
+        brandTagline: body.brandTagline || existing.branding?.brandTagline || "AI灵感创作平台",
+      },
       updatedAt: new Date().toISOString(),
       updatedBy: "admin",
     };
+
     writeConfig(updated);
     return NextResponse.json({ ok: true });
   } catch (err) {
