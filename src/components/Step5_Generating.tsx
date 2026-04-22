@@ -1,19 +1,94 @@
 "use client";
 
+import { useState } from "react";
 import { useWizardStore } from "@/lib/store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, RefreshCw, Check } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Download, RefreshCw, Check, MessageSquare, Loader2, ChevronDown, ChevronUp, Send } from "lucide-react";
 
 const PROGRESS_LABELS = ["解析素材", "提炼卖点", "生成文案", "绘制设计"];
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  images?: string[];
+}
 
 export function Step5Generating() {
   const { generationProgress, isGenerating, copyOptions, designResults, setStep, reset } = useWizardStore();
 
+  // Chat state for iterative refinement
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+
+  // Read settings from store / localStorage
+  const { materials, scene, styleTags, audiences, goal } = useWizardStore();
+
+  async function handleRegenerate(instruction: string) {
+    if (!instruction.trim()) return;
+    setIsRegenerating(true);
+    setChatInput("");
+
+    const userMsg: ChatMessage = { role: "user", content: instruction };
+    setChatMessages(prev => [...prev, userMsg]);
+
+    try {
+      // Build a minimal request to re-generate
+      const settings = JSON.parse(localStorage.getItem("idealab-settings") || "{}");
+      const body: Record<string, any> = {
+        materials: materials.map(m => m.type === "file" ? { type: m.type, name: m.name, preview: m.preview, content: m.content } : m),
+        scene,
+        styleTags,
+        audiences,
+        goal,
+        userOpenRouterKey: settings.openrouterKey || "",
+        userMiniMaxKey: settings.minimaxKey || "",
+        visionModel: settings.visionModel,
+        copyModel: settings.copyModel,
+        imageModel: settings.imageModel,
+        refinementInstruction: instruction,
+        previousCopy: copyOptions,
+      };
+
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setChatMessages(prev => [...prev, { role: "assistant", content: data.error || "重新生成失败" }]);
+        return;
+      }
+
+      // Update results in store
+      if (data.copyOptions?.length) {
+        useWizardStore.getState().setResults(data.copyOptions, data.designs || designResults);
+      } else if (data.designs?.length) {
+        useWizardStore.getState().setResults(copyOptions, data.designs);
+      }
+
+      const assistantMsg: ChatMessage = {
+        role: "assistant",
+        content: "已根据你的要求重新生成 ✨",
+        images: data.designs?.map((d: any) => d.imageUrl).filter(Boolean) || [],
+      };
+      setChatMessages(prev => [...prev, assistantMsg]);
+    } catch {
+      setChatMessages(prev => [...prev, { role: "assistant", content: "网络错误，请重试" }]);
+    } finally {
+      setIsRegenerating(false);
+    }
+  }
+
   if (!isGenerating && copyOptions.length === 0) {
-    // Generation failed or not started - show error state
     return (
       <div className="max-w-2xl mx-auto text-center space-y-6 py-20">
         <div className="text-4xl">😕</div>
@@ -78,14 +153,25 @@ export function Step5Generating() {
           <div className="grid grid-cols-3 gap-4">
             {designResults.map((d) => (
               <Card key={d.id} className="overflow-hidden">
-                <img src={d.imageUrl} alt="设计稿" className="w-full aspect-square object-cover" />
+                {d.imageUrl ? (
+                  <img src={d.imageUrl} alt="设计稿" className="w-full aspect-square object-cover" />
+                ) : (
+                  <div className="w-full aspect-square bg-secondary flex items-center justify-center text-muted-foreground text-sm">
+                    暂无图片
+                  </div>
+                )}
                 <div className="p-3 flex gap-2">
-                  <Button size="sm" className="flex-1" onClick={() => window.open(d.imageUrl)}>
-                    <Download className="w-3 h-3 mr-1" /> 下载
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    <RefreshCw className="w-3 h-3" />
-                  </Button>
+                  {d.imageUrl && (
+                    <Button size="sm" className="flex-1" onClick={() => {
+                      const a = document.createElement("a");
+                      a.href = d.imageUrl;
+                      a.download = `idealab-design-${d.id}.png`;
+                      a.target = "_blank";
+                      a.click();
+                    }}>
+                      <Download className="w-3 h-3 mr-1" /> 下载
+                    </Button>
+                  )}
                 </div>
               </Card>
             ))}
@@ -97,8 +183,15 @@ export function Step5Generating() {
             <Card key={c.id} className="p-4">
               <div className="flex items-start justify-between mb-2">
                 <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded">方案 {i + 1}</span>
-                <Button size="sm" variant="outline">
-                  <Check className="w-3 h-3 mr-1" /> 使用这条
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const text = `${c.headline}\n${c.subheadline}\n\n${c.body}\n\n${c.cta}`;
+                    navigator.clipboard.writeText(text);
+                  }}
+                >
+                  <Check className="w-3 h-3 mr-1" /> 复制
                 </Button>
               </div>
               <div className="space-y-2">
@@ -125,6 +218,88 @@ export function Step5Generating() {
           ))}
         </TabsContent>
       </Tabs>
+
+      {/* ── 对话式迭代调整区域 ─────────────────────────────────── */}
+      <div className="border rounded-xl overflow-hidden">
+        <button
+          onClick={() => setChatOpen(!chatOpen)}
+          className="w-full flex items-center justify-between px-4 py-3 bg-muted/50 hover:bg-muted transition-colors"
+        >
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <MessageSquare className="w-4 h-4" />
+            不满意？说句话调整
+            <span className="text-xs text-muted-foreground font-normal">「换个风格」「再活泼一点」「换个颜色」</span>
+          </div>
+          {chatOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+
+        {chatOpen && (
+          <div className="p-4 space-y-3">
+            {/* Chat history */}
+            {chatMessages.length > 0 && (
+              <div className="max-h-48 overflow-y-auto space-y-2 mb-3">
+                {chatMessages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                      msg.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted"
+                    }`}>
+                      <p>{msg.content}</p>
+                      {msg.images?.map((url, j) => (
+                        <img key={j} src={url} alt="" className="mt-2 rounded w-full max-w-[200px]" />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {isRegenerating && (
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                    <Loader2 className="w-3 h-3 animate-spin" /> 重新生成中...
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Quick actions */}
+            <div className="flex flex-wrap gap-2">
+              {["换一版", "风格再大胆一点", "文案再简洁", "换配色"].map((hint) => (
+                <button
+                  key={hint}
+                  onClick={() => handleRegenerate(hint)}
+                  disabled={isRegenerating}
+                  className="text-xs px-3 py-1.5 rounded-full border hover:bg-muted transition-colors disabled:opacity-50"
+                >
+                  {hint}
+                </button>
+              ))}
+            </div>
+
+            {/* Input */}
+            <div className="flex gap-2">
+              <Input
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleRegenerate(chatInput);
+                  }
+                }}
+                placeholder="告诉我你想怎么改..."
+                disabled={isRegenerating}
+                className="flex-1"
+              />
+              <Button
+                onClick={() => handleRegenerate(chatInput)}
+                disabled={isRegenerating || !chatInput.trim()}
+                size="icon"
+              >
+                {isRegenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="flex justify-between pt-4 border-t">
         <Button variant="secondary" onClick={() => setStep(4)}>← 修改</Button>

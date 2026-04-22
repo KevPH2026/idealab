@@ -68,7 +68,8 @@ export async function GET() {
 // 简单的共享密钥校验
 function verifyAdmin(req: NextRequest) {
   const auth = req.headers.get("authorization");
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+  if (!ADMIN_PASSWORD) return false;
   return auth === `Bearer ${ADMIN_PASSWORD}`;
 }
 

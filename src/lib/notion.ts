@@ -142,4 +142,143 @@ export async function getUserQuotas(email: string): Promise<{
   };
 }
 
+// ─── API Key helpers (separate Notion database) ──────────────────────────────
+
+const KEYS_DATABASE_ID = process.env.NOTION_KEYS_DATABASE_ID!;
+
+export interface NotionApiKey {
+  id: string; // Notion page ID
+  email: string;
+  provider: string; // "openrouter" | "minimax"
+  key: string;
+  enabled: boolean;
+  createdAt: string;
+}
+
+/**
+ * Get all API keys for a user by email.
+ */
+export async function getUserKeys(email: string): Promise<NotionApiKey[]> {
+  try {
+    const response = await (notion.databases as any).query({
+      database_id: KEYS_DATABASE_ID,
+      filter: {
+        property: "Email",
+        email: { equals: email },
+      },
+    });
+
+    return response.results.map((page: any) => {
+      const props = page.properties;
+      return {
+        id: page.id,
+        email: props.Email?.email || "",
+        provider: props.Provider?.select?.name || "",
+        key: props.Key?.rich_text?.[0]?.plain_text || "",
+        enabled: props.Enabled?.checkbox ?? true,
+        createdAt: props.CreatedAt?.date?.start || page.created_time,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Save (upsert) an API key for a user.
+ * If a key already exists for this email+provider, update it; otherwise create a new one.
+ */
+export async function saveUserKey(
+  email: string,
+  provider: string,
+  key: string
+): Promise<NotionApiKey> {
+  // Try to find existing key for this email+provider
+  try {
+    const existing = await (notion.databases as any).query({
+      database_id: KEYS_DATABASE_ID,
+      filter: {
+        and: [
+          { property: "Email", email: { equals: email } },
+          { property: "Provider", select: { equals: provider } },
+        ],
+      },
+    });
+
+    if (existing.results.length > 0) {
+      // Update existing
+      const page = await (notion.pages as any).update({
+        page_id: existing.results[0].id,
+        properties: {
+          Key: { rich_text: [{ text: { content: key } }] },
+          Enabled: { checkbox: true },
+        },
+      });
+
+      const props = page.properties;
+      return {
+        id: page.id,
+        email: props.Email?.email || email,
+        provider: props.Provider?.select?.name || provider,
+        key,
+        enabled: true,
+        createdAt: props.CreatedAt?.date?.start || page.created_time,
+      };
+    }
+  } catch {
+    // Fall through to create
+  }
+
+  // Create new
+  const page = await (notion.pages as any).create({
+    parent: { database_id: KEYS_DATABASE_ID },
+    properties: {
+      Email: { email: email },
+      Provider: { select: { name: provider } },
+      Key: { rich_text: [{ text: { content: key } }] },
+      Enabled: { checkbox: true },
+      CreatedAt: { date: { start: new Date().toISOString() } },
+    },
+  });
+
+  return {
+    id: page.id,
+    email,
+    provider,
+    key,
+    enabled: true,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Delete an API key for a user by email and provider.
+ */
+export async function deleteUserKey(
+  email: string,
+  provider: string
+): Promise<boolean> {
+  try {
+    const existing = await (notion.databases as any).query({
+      database_id: KEYS_DATABASE_ID,
+      filter: {
+        and: [
+          { property: "Email", email: { equals: email } },
+          { property: "Provider", select: { equals: provider } },
+        ],
+      },
+    });
+
+    if (existing.results.length === 0) return false;
+
+    await notion.pages.update({
+      page_id: existing.results[0].id,
+      archived: true,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export { notion };

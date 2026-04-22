@@ -153,7 +153,6 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                   <Badge variant="outline" className="border-purple-500/30 text-purple-300 text-xs">
                     可选
                   </Badge>
-               滴出水
                 </div>
                 <div className="relative">
                   <Input

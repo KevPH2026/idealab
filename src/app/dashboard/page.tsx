@@ -15,12 +15,6 @@ interface Skill {
 }
 interface Pricing { perTurnPrice: number; freeUserTurns: number; }
 
-interface Session {
-  id: string; skillId: string; skillName: string;
-  status: string; totalTurns: number; totalCharge: number;
-  startedAt: string;
-}
-
 interface QuotaInfo {
   freeUsed: number; freeTotal: number;
 }
@@ -37,7 +31,6 @@ export default function DashboardPage() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [pricing, setPricing] = useState<Pricing | null>(null);
   const [quota, setQuota] = useState<QuotaInfo | null>(null);
-  const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -71,15 +64,13 @@ export default function DashboardPage() {
 
   async function fetchAll() {
     setQuotaLoading(true);
-    const [skRes, quotaRes, sessRes] = await Promise.all([
-      fetch("/api/execute").then(r => r.json()),
+    const [skRes, quotaRes] = await Promise.all([
+      fetch("/api/generate").then(r => r.json()),
       fetch("/api/quota").then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch("/api/sessions").then(r => r.ok ? r.json() : { sessions: [] }).catch(() => { sessions: [] }),
     ]);
     setSkills(skRes.skills || []);
     setPricing(skRes.pricing || null);
     setQuota(quotaRes);
-    setSessions(sessRes.sessions || []);
     setQuotaLoading(false);
   }
 
@@ -93,7 +84,7 @@ export default function DashboardPage() {
     setPendingCharge(0);
     setConfirming(false);
     try {
-      const res = await fetch("/api/execute", {
+      const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ skillId: selectedSkill.id, sessionId: null, message: "", imageUrl }),
@@ -105,6 +96,9 @@ export default function DashboardPage() {
       if (data.result) {
         const parsed = typeof data.result === "string" ? JSON.parse(data.result) : data.result;
         setCurrentResult(parsed);
+      }
+      if (data.quotaInfo) {
+        setQuota({ freeUsed: data.quotaInfo.used, freeTotal: (selectedSkill.freeQuotaUser || pricing?.freeUserTurns || 5) });
       }
       setTurns([{ turnNumber: 1, userMessage: null, aiResponse: JSON.stringify(data.result), cost: data.cost || 0, createdAt: new Date().toISOString() }]);
       await fetchAll();
@@ -119,7 +113,7 @@ export default function DashboardPage() {
     const msg = message;
     setMessage("");
     try {
-      const res = await fetch("/api/execute", {
+      const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ skillId: selectedSkill!.id, sessionId: activeSessionId, message: msg, imageUrl, regenerate: true }),
@@ -130,6 +124,9 @@ export default function DashboardPage() {
       if (data.result) {
         const parsed = typeof data.result === "string" ? JSON.parse(data.result) : data.result;
         setCurrentResult(parsed);
+      }
+      if (data.quotaInfo) {
+        setQuota({ freeUsed: data.quotaInfo.used, freeTotal: (selectedSkill?.freeQuotaUser || pricing?.freeUserTurns || 5) });
       }
       setTurns(prev => [...prev, {
         turnNumber: turns.length + 1,
@@ -147,18 +144,14 @@ export default function DashboardPage() {
   async function confirmDone() {
     if (!activeSessionId) return;
     setConfirming(true);
-    await fetch("/api/sessions/done", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId: activeSessionId }),
-    });
-    await fetchAll();
+    // Session done is now purely client-side — no API call needed
     setActiveSessionId(null);
     setSelectedSkill(null);
     setTurns([]);
     setCurrentResult(null);
     setPendingCharge(0);
     setConfirming(false);
+    await fetchAll();
   }
 
   async function saveKeys() {
@@ -303,26 +296,6 @@ export default function DashboardPage() {
               </Button>
             </div>
           )}
-
-          {/* Recent sessions */}
-          {sessions.length > 0 && (
-            <div>
-              <h2 className="font-bold text-gray-900 text-sm uppercase tracking-wide text-gray-500 mb-3">最近会话</h2>
-              <div className="space-y-2">
-                {sessions.slice(0, 5).map(sess => (
-                  <div key={sess.id} className="bg-white border border-gray-200 rounded-xl p-3 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-gray-800">{sess.skillName || sess.skillId}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        sess.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                      }`}>{sess.status === "active" ? "进行中" : "已结束"}</span>
-                    </div>
-                    <div className="text-xs text-gray-400 mt-1">{sess.totalTurns} 轮 · ¥{sess.totalCharge.toFixed(2)}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Right: Chat / Result Area */}
@@ -437,7 +410,7 @@ export default function DashboardPage() {
                 {currentResult && !confirming && (
                   <div className="flex items-center gap-2 mb-3">
                     <button
-                      onClick={() => { setConfirming(true); confirmDone(); }}
+                      onClick={() => confirmDone()}
                       className="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-full hover:bg-green-200 transition-colors"
                     >
                       ✓ 满意，结束会话

@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
 
 export async function POST(req: NextRequest) {
+  if (!ADMIN_PASSWORD) {
+    return NextResponse.json({ error: "ADMIN_PASSWORD 环境变量未设置" }, { status: 500 });
+  }
   try {
     const { password } = await req.json();
     if (password === ADMIN_PASSWORD) {
@@ -16,6 +19,9 @@ export async function POST(req: NextRequest) {
 
 // 验证 token 是否有效
 export async function GET(req: NextRequest) {
+  if (!ADMIN_PASSWORD) {
+    return NextResponse.json({ error: "ADMIN_PASSWORD 环境变量未设置" }, { status: 500 });
+  }
   const auth = req.headers.get("authorization");
   const token = auth?.replace("Bearer ", "");
   if (token === ADMIN_PASSWORD) {
