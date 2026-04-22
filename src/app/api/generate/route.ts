@@ -337,7 +337,7 @@ export async function POST(req: NextRequest) {
       if (!copyRes.ok) {
         const errText = await copyRes.text();
         console.error("OpenRouter error:", errText);
-        return NextResponse.json({ error: "文案生成失败，请检查 API Key 额度" }, { status: 502 });
+        return NextResponse.json({ error: `文案生成失败: ${errText.slice(0, 200)}` }, { status: 502 });
       }
 
       const copyData = await copyRes.json();
