@@ -361,13 +361,12 @@ export async function POST(req: NextRequest) {
         ];
       }
 
-      // ── Generate images ─────────────────────────────────────────────────
+      // ── Generate image (1 design, single call to fit Vercel Hobby timeout) ──
       const designs: any[] = [];
       const selectedCopy = copyOptions[0] || {};
 
-      for (let i = 0; i < 3; i++) {
-        try {
-          const designPrompt = `Professional marketing poster design for ${sceneLabel}.
+      try {
+        const designPrompt = `Professional marketing poster design for ${sceneLabel}.
 Size: ${sceneWidth}x${sceneHeight}px (${scene?.ratio || "1:1"}).
 Style: ${styleTags?.join(", ") || "modern, tech, premium"}.
 Main headline: ${selectedCopy.headline || "IdeaLab"}
@@ -380,35 +379,32 @@ Color palette: Deep purple (#6B21A8) to indigo (#4F46E5) gradient, with electric
 Design style: Modern, sleek, premium AI SaaS aesthetic. Glassmorphism elements. Neon glow effects.
 Make it visually striking and professional marketing material.`;
 
-          const imgRes = await fetch("https://api.minimax.chat/v1/image_generation", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${effectiveMiniMaxKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: effectiveImageModel,
-              prompt: designPrompt,
-              aspect_ratio: scene?.ratio || "1:1",
-              resolution: `${sceneWidth}x${sceneHeight}`,
-            }),
-          });
+        const imgRes = await fetch("https://api.minimax.chat/v1/image_generation", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${effectiveMiniMaxKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: effectiveImageModel,
+            prompt: designPrompt,
+            aspect_ratio: scene?.ratio || "1:1",
+          }),
+        });
 
-          if (!imgRes.ok) {
-            console.error("MiniMax error:", await imgRes.text());
-            continue;
-          }
-
+        if (!imgRes.ok) {
+          console.error("MiniMax error:", await imgRes.text());
+        } else {
           const imgData = await imgRes.json();
           if (imgData.data?.image_urls?.[0]) {
             designs.push({
-              id: `design_${i}_${Date.now()}`,
+              id: `design_0_${Date.now()}`,
               imageUrl: imgData.data.image_urls[0],
             });
           }
-        } catch (err) {
-          console.error("Image gen error:", err);
         }
+      } catch (err) {
+        console.error("Image gen error:", err);
       }
 
       if (designs.length === 0) {

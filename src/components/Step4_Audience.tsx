@@ -29,12 +29,17 @@ export function Step4Audience() {
       setProgress(prog);
     }, 500);
 
+    // Use AbortController with 120s timeout (AI generation can take 30-60s)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120000);
+
     try {
       // Build request body with user settings
       const state = wizard;
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           materials: state.materials,
           scene: state.scene,
@@ -49,6 +54,7 @@ export function Step4Audience() {
           imageModel: settings.imageModel,
         }),
       });
+      clearTimeout(timeout);
       const data = await res.json();
       clearInterval(interval);
       setProgress(100);
@@ -60,10 +66,14 @@ export function Step4Audience() {
         return;
       }
       setResults(data.copyOptions || [], data.designs || []);
-    } catch (err) {
+    } catch (err: any) {
       clearInterval(interval);
+      clearTimeout(timeout);
       setGenerating(false);
       setStep(4);
+      if (err?.name === "AbortError") {
+        alert("生成超时（120秒），请重试或稍后再试");
+      }
     }
   };
 
