@@ -693,7 +693,7 @@ export default function HomePage() {
                 {step === 5 && <Step5Generating />}
               </div>
 
-              {step < 5 && (
+              {step < 4 && (
                 <div className="flex gap-3 mt-8">
                   {step > 1 && (
                     <Button variant="outline" onClick={handleBack} className="flex-1 h-12 border-white/20 text-white/70 hover:text-white rounded-xl">

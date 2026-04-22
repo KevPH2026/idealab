@@ -21,7 +21,7 @@ export function StepIndicator() {
         return (
           <div key={s.n} className="flex items-center">
             <button
-              onClick={() => setStep(s.n)}
+              onClick={() => { if (isDone || isActive) setStep(s.n); }}
               className={`
                 flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all
                 ${isActive ? "bg-primary/30 ring-2 ring-primary" : ""}
