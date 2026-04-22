@@ -55,7 +55,7 @@ function getDefaultConfig(): ServerConfig {
       minCharge: 0.5,
       maxSessionCharge: 50,
     },
-    openrouter: { apiKey: process.env.OPENROUTER_API_KEY || "", visionModel: "qwen/qwen2.5-vl-72b-instruct", copyModel: "openai/gpt-4o" },
+    openrouter: { apiKey: process.env.OPENROUTER_API_KEY || "", visionModel: "qwen/qwen2.5-vl-72b-instruct", copyModel: "deepseek/deepseek-chat-v3-0324" },
     minimax: { apiKey: process.env.MINIMAX_API_KEY || "", imageModel: "image-01" },
   };
 }
