@@ -161,7 +161,8 @@ export async function POST(req: NextRequest) {
     // Key resolution priority: user-provided > env vars > config/models.json
     const effectiveOpenRouterKey =
       stripQuotes(userOpenRouterKey) ||
-      stripQuotes(cfg.openrouter.apiKey);
+      stripQuotes(cfg.openrouter.apiKey) ||
+      process.env.OPENROUTER_API_KEY?.trim()?.replace(/^["']|["']$/g, "");
 
     const effectiveMiniMaxKey =
       stripQuotes(userMiniMaxKey) ||

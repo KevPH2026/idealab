@@ -43,3 +43,4 @@ config/models.json
 config/models.json.local
 
 /src/generated/prisma
+config/models.json
