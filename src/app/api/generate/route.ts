@@ -55,7 +55,7 @@ function getDefaultConfig(): ServerConfig {
       minCharge: 0.5,
       maxSessionCharge: 50,
     },
-    openrouter: { apiKey: process.env.OPENROUTER_API_KEY || "sk-or-v1-017495ecb08a4ef8b93dc6f2e3ad2e5cc10dcd3e88f0e4e72c12df1e2ac34ebb7", visionModel: "qwen/qwen2.5-vl-72b-instruct", copyModel: "deepseek/deepseek-chat-v3-0324" },
+    openrouter: { apiKey: process.env.OPENROUTER_API_KEY || "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", visionModel: "qwen/qwen2.5-vl-72b-instruct", copyModel: "deepseek/deepseek-chat-v3-0324" },
     minimax: { apiKey: process.env.MINIMAX_API_KEY || "sk-cp-iPwiazmWpnPdhqDDL7MERYcIObW3prHB-wcTTRiTrcSbSzzQ2Iva4YZ5Tv0I3LsOnKAAIGAE2H9CbgMxPRJiOJ-PULd1bZOh8_QSWnmR-HWvxAwS6BFxxpc", imageModel: "image-01" },
   };
 }
