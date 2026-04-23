@@ -10,10 +10,10 @@ const SCENES = [
   { desc: 'outdoor golden hour, active lifestyle, aspirational feel', label: '户外黄金时段' },
   { desc: 'unboxing moment, excited expression, shallow depth of field', label: '开箱惊喜' },
   { desc: 'before and after transformation, split composition, dramatic', label: '使用对比' },
-  { desc: 'casual UGC phone camera style, authentic, relatable', label: '素人UGC' },
+  { desc: 'flat lay product photography, clean white background, lifestyle accessories around product', label: '产品平铺' },
   { desc: 'minimalist product on marble, studio lighting, luxury feel', label: '极简产品' },
   { desc: 'festive sale atmosphere, bold visual, promotional energy', label: '促销氛围' },
-  { desc: 'happy customer using product outdoors, warm natural tones', label: '用户场景' },
+  { desc: 'scenic outdoor landscape with product as focal point, warm golden tones, wide composition', label: '户外场景' },
 ];
 
 const ASPECT_RATIOS = ['1:1', '9:16', '16:9', '1:1', '2:3', '9:16', '16:9', '3:2'];

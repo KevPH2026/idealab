@@ -90,11 +90,12 @@ const T = {
 
 const DEMO_IMAGES = [
   { src: '/demo/01_IG_Feed_1x1.webp', label: 'IG Feed', size: '1:1' },
-  { src: '/demo/02_Story_9x16.webp', label: 'Story', size: '9:16' },
-  { src: '/demo/03_FB_16x9.webp', label: 'FB Ad', size: '16:9' },
+  { src: '/demo/02_Story_9x16.webp', label: 'Story / TikTok', size: '9:16' },
+  { src: '/demo/03_FB_16x9.webp', label: 'FB / Google', size: '16:9' },
   { src: '/demo/04_IG_Feed2_1x1.webp', label: 'IG Feed', size: '1:1' },
-  { src: '/demo/06_Story2_9x16.webp', label: 'Story', size: '9:16' },
-  { src: '/demo/07_FB2_16x9.webp', label: 'FB Ad', size: '16:9' },
+  { src: '/demo/06_Story2_9x16.webp', label: 'Story / TikTok', size: '9:16' },
+  { src: '/demo/07_FB2_16x9.webp', label: 'FB / Google', size: '16:9' },
+  { src: '/demo/08_Extra_IG_Feed_1x1.webp', label: 'IG Feed', size: '1:1' },
 ];
 
 export default function LandingPage() {
@@ -195,9 +196,9 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="rounded-2xl p-[1px]"
             style={{ background: 'linear-gradient(145deg, rgba(139,92,246,0.3), rgba(255,255,255,0.05), rgba(6,182,212,0.2))' }}>
-            <div className="rounded-2xl p-5 md:p-6"
+            <div className="rounded-2xl p-4 md:p-5"
               style={{ background: 'rgba(10,10,15,0.9)', backdropFilter: 'blur(20px)' }}>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-violet-500" style={{ boxShadow: '0 0 8px rgba(139,92,246,0.6)' }} />
                   <span className="text-xs text-white/25 font-medium">{t.gridLabel}</span>
@@ -207,36 +208,80 @@ export default function LandingPage() {
                   <Download className="w-3 h-3" /> {t.exportAll}
                 </button>
               </div>
-              <div className="grid grid-cols-3 gap-2 md:gap-3">
-                {DEMO_IMAGES.map((img, i) => (
-                  <div key={i} className={`group relative rounded-xl overflow-hidden cursor-pointer transition-all hover:scale-[1.02] hover:z-10 ${
-                    img.size === '9:16' ? 'row-span-2' : ''
-                  }`}
-                    style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div className={
-                      img.size === '9:16' ? 'aspect-[9/16]' :
-                      img.size === '16:9' ? 'aspect-video' :
-                      'aspect-square'
-                    }>
-                      <img
-                        src={img.src}
-                        alt={`${img.label} demo`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-between p-2.5 md:p-3">
-                      <div className="flex justify-between items-start">
-                        <span className="text-[9px] font-bold text-white/90 px-2 py-0.5 rounded-md"
-                          style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}>{img.label}</span>
-                        <span className="text-[8px] text-white/50 font-mono">{img.size}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Download className="w-3.5 h-3.5 text-white/80" />
-                        <span className="text-[9px] text-white/70 font-medium">Download</span>
-                      </div>
-                    </div>
+              {/* Masonry-style grid: 4 cols with varying heights */}
+              <div className="grid grid-cols-4 gap-1.5 md:gap-2">
+                {/* Row 1-2: IG 1:1 | Story 9:16 (span 2 rows) | FB 16:9 */}
+                <div className="group relative rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] hover:z-10"
+                  style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="aspect-square">
+                    <img src={DEMO_IMAGES[0].src} alt="demo" className="w-full h-full object-cover" />
                   </div>
-                ))}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all flex items-end p-2">
+                    <span className="text-[8px] font-bold text-white/90 px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,0,0,0.6)' }}>{DEMO_IMAGES[0].label}</span>
+                  </div>
+                </div>
+
+                <div className="row-span-2 group relative rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] hover:z-10"
+                  style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="aspect-[9/16] h-full">
+                    <img src={DEMO_IMAGES[1].src} alt="demo" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all flex items-end p-2">
+                    <span className="text-[8px] font-bold text-white/90 px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,0,0,0.6)' }}>{DEMO_IMAGES[1].label}</span>
+                  </div>
+                </div>
+
+                <div className="col-span-2 group relative rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] hover:z-10"
+                  style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="aspect-video">
+                    <img src={DEMO_IMAGES[2].src} alt="demo" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all flex items-end p-2">
+                    <span className="text-[8px] font-bold text-white/90 px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,0,0,0.6)' }}>{DEMO_IMAGES[2].label}</span>
+                  </div>
+                </div>
+
+                {/* Row 2: IG 1:1 | (story spans) | IG 1:1 */}
+                <div className="group relative rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] hover:z-10"
+                  style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="aspect-square">
+                    <img src={DEMO_IMAGES[3].src} alt="demo" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all flex items-end p-2">
+                    <span className="text-[8px] font-bold text-white/90 px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,0,0,0.6)' }}>{DEMO_IMAGES[3].label}</span>
+                  </div>
+                </div>
+
+                <div className="group relative rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] hover:z-10"
+                  style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="aspect-square">
+                    <img src={DEMO_IMAGES[6].src} alt="demo" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all flex items-end p-2">
+                    <span className="text-[8px] font-bold text-white/90 px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,0,0,0.6)' }}>{DEMO_IMAGES[6].label}</span>
+                  </div>
+                </div>
+
+                {/* Row 3: FB 16:9 (span 2) | Story 9:16 (span 2 rows) | extra */}
+                <div className="col-span-2 group relative rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] hover:z-10"
+                  style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="aspect-video">
+                    <img src={DEMO_IMAGES[5].src} alt="demo" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all flex items-end p-2">
+                    <span className="text-[8px] font-bold text-white/90 px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,0,0,0.6)' }}>{DEMO_IMAGES[5].label}</span>
+                  </div>
+                </div>
+
+                <div className="row-span-2 group relative rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] hover:z-10"
+                  style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="aspect-[9/16] h-full">
+                    <img src={DEMO_IMAGES[4].src} alt="demo" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all flex items-end p-2">
+                    <span className="text-[8px] font-bold text-white/90 px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,0,0,0.6)' }}>{DEMO_IMAGES[4].label}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
