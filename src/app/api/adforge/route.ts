@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const maxDuration = 180; // Vercel Pro可设300s，Hobby 60s
+export const maxDuration = 180;
 
 const NOVART_API_KEY = process.env.NOVART_API_KEY || '';
 const NOVART_BASE_URL = process.env.NOVART_BASE_URL || 'https://www.novartspace.art';
-const NOVART_MODEL = 'nova-g-image-2';
 
 const SCENES = [
   { desc: 'lifestyle morning routine, natural light, clean aesthetic', label: '晨间生活' },
@@ -19,7 +18,16 @@ const SCENES = [
 
 const ASPECT_RATIOS = ['1:1', '9:16', '16:9', '1:1', '2:3', '9:16', '16:9', '3:2'];
 
-function getAspectRatioLabel(ratio: string): string {
+const SIZE_MAP: Record<string, string> = {
+  '1:1': '1024x1024',
+  '16:9': '1344x768',
+  '9:16': '768x1344',
+  '4:3': '1024x768',
+  '2:3': '768x1152',
+  '3:2': '1152x768',
+};
+
+function getPlatformLabel(ratio: string): string {
   const map: Record<string, string> = {
     '1:1': 'IG Feed (1:1)',
     '16:9': 'FB / Google (16:9)',
@@ -31,82 +39,145 @@ function getAspectRatioLabel(ratio: string): string {
   return map[ratio] || ratio;
 }
 
+/** 解析参考图为 base64 */
+async function resolveReferenceImage(ref: string): Promise<{ mimeType: string; data: string } | null> {
+  if (ref.startsWith('data:')) {
+    const match = ref.match(/^data:(image\/[^;]+);base64,(.+)$/);
+    if (match) return { mimeType: match[1], data: match[2] };
+    return null;
+  }
+  if (ref.startsWith('http')) {
+    try {
+      const res = await fetch(ref, { signal: AbortSignal.timeout(15000) });
+      if (!res.ok) return null;
+      const buf = Buffer.from(await res.arrayBuffer());
+      const ct = res.headers.get('content-type') || 'image/png';
+      return { mimeType: ct, data: buf.toString('base64') };
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 /**
- * 调用 Novart API 生成单张图片
+ * 无参考图：OpenAI兼容端点 (nova-image-pro-flex, 最快28-47秒)
  */
-async function generateSingle(
+async function generateFast(
   prompt: string,
   aspectRatio: string,
-  referenceImage?: string,
 ): Promise<{ imageData: string; downloadUrl?: string } | null> {
-  const endpoint = `${NOVART_BASE_URL}/v1beta/models/${NOVART_MODEL}:generateContent`;
+  const size = SIZE_MAP[aspectRatio] || '1024x1024';
+  const endpoint = `${NOVART_BASE_URL}/v1/images/generations`;
 
-  const parts: any[] = [{ text: prompt }];
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${NOVART_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'nova-image-pro-flex',
+          prompt,
+          n: 1,
+          size,
+          response_format: 'b64_json',
+        }),
+        signal: AbortSignal.timeout(120_000),
+      });
 
-  if (referenceImage) {
-    let mimeType = 'image/png';
-    let base64Data = referenceImage;
-    if (referenceImage.startsWith('data:')) {
-      const match = referenceImage.match(/^data:(image\/[^;]+);base64,(.+)$/);
-      if (match) {
-        mimeType = match[1];
-        base64Data = match[2];
+      if (!res.ok) {
+        const err = await res.text();
+        console.error(`[ADFORGE-FAST] ${res.status}:`, err.slice(0, 200));
+        if (res.status === 401 || res.status === 402) return null; // key/余额问题不重试
+        await new Promise(r => setTimeout(r, 3000 * (attempt + 1)));
+        continue;
       }
-    }
-    parts.push({ inlineData: { mimeType, data: base64Data } });
-  }
 
+      const data = await res.json();
+      const b64 = data?.data?.[0]?.b64_json;
+      const url = data?.data?.[0]?.url;
+
+      if (b64) return { imageData: `data:image/png;base64,${b64}` };
+      if (url) return { imageData: '', downloadUrl: url };
+
+      console.error('[ADFORGE-FAST] No image in response:', JSON.stringify(data).slice(0, 200));
+    } catch (err: any) {
+      console.error(`[ADFORGE-FAST] Attempt ${attempt + 1} error:`, err?.message);
+      await new Promise(r => setTimeout(r, 3000 * (attempt + 1)));
+    }
+  }
+  return null;
+}
+
+/**
+ * 有参考图：原生Gemini端点 (nova-image-pro, 支持inlineData)
+ */
+async function generateWithRef(
+  prompt: string,
+  aspectRatio: string,
+  refImage: { mimeType: string; data: string },
+): Promise<{ imageData: string; downloadUrl?: string } | null> {
+  const endpoint = `${NOVART_BASE_URL}/v1beta/models/nova-image-pro:generateContent`;
   const body = {
-    contents: [{ role: 'user', parts }],
+    contents: [{
+      role: 'user',
+      parts: [
+        { text: prompt },
+        { inlineData: { mimeType: refImage.mimeType, data: refImage.data } },
+      ],
+    }],
     generationConfig: {
       responseModalities: ['TEXT', 'IMAGE'],
-      imageConfig: { aspectRatio, novartResolution: '2k' },
+      imageConfig: { aspectRatio, novartResolution: '1k' },
     },
     novart: { includeResultUrls: true },
   };
 
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'x-goog-api-key': NOVART_API_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(180_000),
-    });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'x-goog-api-key': NOVART_API_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(180_000),
+      });
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error(`Novart error (${res.status}):`, errText.slice(0, 300));
-      return null;
-    }
-
-    const data = await res.json();
-    const parts_arr = data?.candidates?.[0]?.content?.parts || [];
-    let imageData = '';
-    for (const p of parts_arr) {
-      if (p.inlineData?.data) {
-        imageData = `data:${p.inlineData.mimeType || 'image/png'};base64,${p.inlineData.data}`;
-        break;
+      if (!res.ok) {
+        const err = await res.text();
+        console.error(`[ADFORGE-REF] ${res.status}:`, err.slice(0, 200));
+        if (res.status === 400 || res.status === 401 || res.status === 402) return null;
+        await new Promise(r => setTimeout(r, 3000 * (attempt + 1)));
+        continue;
       }
-    }
-    const downloadUrl = data?.novart?.results?.[0]?.download_url;
 
-    if (!imageData && !downloadUrl) return null;
-    return { imageData: imageData || '', downloadUrl: downloadUrl || undefined };
-  } catch (err: any) {
-    console.error('Novart fetch error:', err?.message || err);
-    return null;
+      const data = await res.json();
+      const parts = data?.candidates?.[0]?.content?.parts || [];
+      let imageData = '';
+      for (const p of parts) {
+        if (p.inlineData?.data) {
+          imageData = `data:${p.inlineData.mimeType || 'image/png'};base64,${p.inlineData.data}`;
+          break;
+        }
+      }
+      const downloadUrl = data?.novart?.results?.[0]?.download_url;
+      if (imageData || downloadUrl) {
+        return { imageData, downloadUrl };
+      }
+      console.error('[ADFORGE-REF] No image data:', JSON.stringify(data).slice(0, 200));
+    } catch (err: any) {
+      console.error(`[ADFORGE-REF] Attempt ${attempt + 1} error:`, err?.message);
+      await new Promise(r => setTimeout(r, 3000 * (attempt + 1)));
+    }
   }
+  return null;
 }
 
-/**
- * POST /api/adforge
- * 支持两种模式：
- * 1. 单张生成：{ sceneIndex, ...params } → 返回 { image }
- * 2. 批量生成：{ ...params } (无sceneIndex) → 返回 { images }
- */
 export async function POST(req: NextRequest) {
   if (!NOVART_API_KEY) {
     return NextResponse.json({ error: '未配置 API Key' }, { status: 400 });
@@ -134,13 +205,26 @@ export async function POST(req: NextRequest) {
     `Requirements: Product is the hero. Aspirational but authentic. No text overlay. High resolution, sharp details.`,
   ].join('\n');
 
-  // 单张模式：前端逐张请求，避免serverless超时
+  // 解析参考图（如果有）
+  let refData: { mimeType: string; data: string } | null = null;
+  if (referenceImage) {
+    refData = await resolveReferenceImage(referenceImage);
+    if (!refData) {
+      console.error('[ADFORGE] Failed to resolve reference image');
+    }
+  }
+
+  const generate = refData
+    ? (prompt: string, ratio: string) => generateWithRef(prompt, ratio, refData!)
+    : (prompt: string, ratio: string) => generateFast(prompt, ratio);
+
+  // 单张模式
   if (typeof sceneIndex === 'number' && sceneIndex >= 0 && sceneIndex < SCENES.length) {
     const scene = SCENES[sceneIndex];
     const aspectRatio = ASPECT_RATIOS[sceneIndex];
     const prompt = buildPrompt(scene);
 
-    const result = await generateSingle(prompt, aspectRatio, referenceImage);
+    const result = await generate(prompt, aspectRatio);
     if (!result) {
       return NextResponse.json({ error: `场景"${scene.label}"生成失败` }, { status: 500 });
     }
@@ -148,22 +232,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       image: {
         url: result.downloadUrl || result.imageData,
-        platform: getAspectRatioLabel(aspectRatio),
+        platform: getPlatformLabel(aspectRatio),
         scene: scene.label,
       },
     });
   }
 
-  // 批量模式：后端一次生成8张（适用于非Vercel环境）
+  // 批量模式
   const images: any[] = [];
   for (let i = 0; i < SCENES.length; i++) {
     const scene = SCENES[i];
     const prompt = buildPrompt(scene);
-    const result = await generateSingle(prompt, ASPECT_RATIOS[i], referenceImage);
+    const result = await generate(prompt, ASPECT_RATIOS[i]);
     if (result) {
       images.push({
         url: result.downloadUrl || result.imageData,
-        platform: getAspectRatioLabel(ASPECT_RATIOS[i]),
+        platform: getPlatformLabel(ASPECT_RATIOS[i]),
         scene: scene.label,
       });
     }

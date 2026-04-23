@@ -60,10 +60,34 @@ export default function AdForgePage() {
     reader.readAsDataURL(file);
   };
 
-  const handleUrlSubmit = () => {
+  const handleUrlSubmit = async () => {
     if (!imageUrl.trim()) return;
-    setPreviewSrc(imageUrl.trim());
-    analyzeImage(imageUrl.trim());
+    setDnaLoading(true);
+    setDnaError('');
+    setDna(null);
+    try {
+      // 直接传URL给后端分析（后端会下载图片）
+      setPreviewSrc(imageUrl.trim());
+      const res = await fetch('/api/brand-dna', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: imageUrl.trim() }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || '分析失败');
+      }
+      const data = await res.json();
+      setDna(data.dna);
+      // 如果后端返回了base64图片，更新预览
+      if (data.imageData) {
+        setPreviewSrc(data.imageData);
+      }
+    } catch (e: any) {
+      setDnaError(e?.message || '图片分析失败');
+    } finally {
+      setDnaLoading(false);
+    }
   };
 
   const analyzeImage = async (img: string) => {
