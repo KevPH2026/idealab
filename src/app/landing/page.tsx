@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowRight, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, Sparkles, ChevronLeft, ChevronRight, Check, Zap, Crown } from 'lucide-react';
 
 type Lang = 'zh' | 'en';
 
@@ -25,6 +25,33 @@ const T = {
     ],
     footer: '© 2026 100x',
     demoCaption: '真实AI生成 · 未经修改',
+    planLabel: '选择方案',
+    planTitle: '按需选择，随时升级',
+    plans: [
+      {
+        name: 'Free',
+        badge: '免费体验',
+        price: '¥0',
+        period: '永久免费',
+        desc: '注册即用，体验完整流程',
+        features: ['100次AI生成', '8种广告场景', '4种平台尺寸', '品牌DNA解码', '一键下载全部素材'],
+        cta: '免费注册',
+        highlight: false,
+      },
+      {
+        name: 'Pro',
+        badge: '最受欢迎',
+        price: '¥199',
+        period: '/月',
+        desc: '专业卖家首选，无限素材产出',
+        features: [
+          '无限AI生成', '8种广告场景', '全平台尺寸', '品牌DNA解码',
+          '批量导出 & 水印', '多品牌管理', 'A/B测试变体', '优先生成速度', '专属客服支持',
+        ],
+        cta: '立即升级',
+        highlight: true,
+      },
+    ],
   },
   en: {
     badge: 'DTC Ad Creatives · 100x Efficiency',
@@ -45,6 +72,33 @@ const T = {
     ],
     footer: '© 2026 100x',
     demoCaption: 'Real AI output · Unedited',
+    planLabel: 'PRICING',
+    planTitle: 'Pick your plan, scale anytime',
+    plans: [
+      {
+        name: 'Free',
+        badge: 'Free tier',
+        price: '$0',
+        period: 'Free forever',
+        desc: 'Sign up and experience the full workflow',
+        features: ['100 AI generations', '8 ad scenes', '4 platform sizes', 'Brand DNA decode', 'One-click download all'],
+        cta: 'Sign Up Free',
+        highlight: false,
+      },
+      {
+        name: 'Pro',
+        badge: 'Most Popular',
+        price: '$29',
+        period: '/mo',
+        desc: 'For serious sellers, unlimited creatives',
+        features: [
+          'Unlimited AI generations', '8 ad scenes', 'All platform sizes', 'Brand DNA decode',
+          'Batch export & watermark', 'Multi-brand management', 'A/B test variants', 'Priority generation speed', 'Dedicated support',
+        ],
+        cta: 'Upgrade Now',
+        highlight: true,
+      },
+    ],
   },
 };
 
@@ -209,6 +263,7 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-8 text-xs text-white/40 font-medium">
             <a href="#demo" className="hover:text-white/80 transition-colors">Demo</a>
             <a href="#how" className="hover:text-white/80 transition-colors">{t.navHow}</a>
+            <a href="#pricing" className="hover:text-white/80 transition-colors">Pricing</a>
           </div>
           <div className="flex items-center gap-3">
             <button onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
@@ -328,6 +383,91 @@ export default function LandingPage() {
                   <p className="text-sm text-white/35 mb-1">{s.desc}</p>
                   <p className="text-xs text-white/15">{s.detail}</p>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Pricing ─── */}
+      <section id="pricing" className="py-24 px-6" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-14">
+            <p className="text-xs text-violet-400/80 font-medium uppercase tracking-[4px] mb-3">{t.planLabel}</p>
+            <h2 className="text-3xl md:text-4xl font-black text-white">{t.planTitle}</h2>
+          </div>
+          <div className="grid md:grid-cols-2 gap-5 items-start">
+            {t.plans.map((plan, i) => (
+              <div key={i} className="relative rounded-2xl p-6 md:p-8 transition-all duration-300 hover:scale-[1.01]"
+                style={{
+                  background: plan.highlight
+                    ? 'rgba(139,92,246,0.06)'
+                    : 'rgba(255,255,255,0.015)',
+                  border: plan.highlight
+                    ? '1px solid rgba(139,92,246,0.3)'
+                    : '1px solid rgba(255,255,255,0.06)',
+                  boxShadow: plan.highlight
+                    ? '0 0 40px rgba(139,92,246,0.08), 0 0 80px rgba(139,92,246,0.03)'
+                    : 'none',
+                }}>
+                {/* Badge */}
+                {plan.highlight && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold"
+                      style={{ background: 'linear-gradient(135deg, #8b5cf6, #a855f7)', color: 'white', boxShadow: '0 0 16px rgba(139,92,246,0.4)' }}>
+                      <Crown className="w-3 h-3" /> {plan.badge}
+                    </span>
+                  </div>
+                )}
+
+                {/* Header */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    {plan.highlight
+                      ? <Zap className="w-5 h-5 text-violet-400" />
+                      : <div className="w-5 h-5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                    }
+                    <span className="text-lg font-bold text-white">{plan.name}</span>
+                    {!plan.highlight && (
+                      <span className="text-[10px] text-white/20 px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                        {plan.badge}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-baseline gap-1 mb-2">
+                    <span className="text-4xl md:text-5xl font-black" style={{ color: plan.highlight ? '#c4b5fd' : 'rgba(255,255,255,0.8)' }}>
+                      {plan.price}
+                    </span>
+                    <span className="text-sm text-white/20">{plan.period}</span>
+                  </div>
+                  <p className="text-sm text-white/25">{plan.desc}</p>
+                </div>
+
+                {/* Features */}
+                <ul className="space-y-3 mb-8">
+                  {plan.features.map((f, fi) => (
+                    <li key={fi} className="flex items-start gap-2.5 text-sm" style={{ color: plan.highlight ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.3)' }}>
+                      <Check className={`w-4 h-4 mt-0.5 shrink-0 ${plan.highlight ? 'text-violet-400' : 'text-white/15'}`} />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTA */}
+                <a href="/get" className="group inline-flex items-center justify-center gap-2 w-full text-sm font-bold transition-all"
+                  style={{
+                    background: plan.highlight
+                      ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)'
+                      : 'rgba(255,255,255,0.05)',
+                    color: plan.highlight ? 'white' : 'rgba(255,255,255,0.4)',
+                    padding: '12px 24px',
+                    borderRadius: '12px',
+                    boxShadow: plan.highlight ? '0 0 20px rgba(139,92,246,0.25)' : 'none',
+                    border: plan.highlight ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                  }}>
+                  {plan.cta}
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                </a>
               </div>
             ))}
           </div>
