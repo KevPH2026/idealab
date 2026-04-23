@@ -150,15 +150,22 @@ export async function POST(req: NextRequest) {
     // ── Resolve config & keys ───────────────────────────────────────────
     const cfg = resolveConfig();
 
+    // Strip surrounding quotes that Vercel env add may introduce
+    const stripQuotes = (v?: string) => {
+      if (!v) return v;
+      const t = v.trim();
+      if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) return t.slice(1, -1);
+      return t;
+    };
+
     // Key resolution priority: user-provided > env vars > config/models.json
-    // (env vars are already resolved inside resolveConfig via process.env)
     const effectiveOpenRouterKey =
-      (userOpenRouterKey?.trim()) ||
-      cfg.openrouter.apiKey;
+      stripQuotes(userOpenRouterKey) ||
+      stripQuotes(cfg.openrouter.apiKey);
 
     const effectiveMiniMaxKey =
-      (userMiniMaxKey?.trim()) ||
-      cfg.minimax.apiKey;
+      stripQuotes(userMiniMaxKey) ||
+      stripQuotes(cfg.minimax.apiKey);
 
     // ── Validate keys ───────────────────────────────────────────────────
     if (!effectiveOpenRouterKey) {
