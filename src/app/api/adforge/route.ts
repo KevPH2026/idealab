@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const maxDuration = 180; // Vercel Pro可设300s，Hobby 60s
+
 const NOVART_API_KEY = process.env.NOVART_API_KEY || '';
 const NOVART_BASE_URL = process.env.NOVART_BASE_URL || 'https://www.novartspace.art';
 const NOVART_MODEL = 'nova-g-image-2';
@@ -15,14 +17,7 @@ const SCENES = [
   { desc: 'happy customer using product outdoors, warm natural tones', label: '用户场景' },
 ];
 
-// nova-g-image-2: auto, 16:9, 9:16, 1:1, 3:2, 2:3
 const ASPECT_RATIOS = ['1:1', '9:16', '16:9', '1:1', '2:3', '9:16', '16:9', '3:2'];
-
-interface ImageResult {
-  url: string;
-  platform: string;
-  scene: string;
-}
 
 function getAspectRatioLabel(ratio: string): string {
   const map: Record<string, string> = {
@@ -37,10 +32,9 @@ function getAspectRatioLabel(ratio: string): string {
 }
 
 /**
- * 调用 Novart API (Google-style generateContent)
- * 支持参考图输入：styleInjection模式下传参考图
+ * 调用 Novart API 生成单张图片
  */
-async function generateWithNovart(
+async function generateSingle(
   prompt: string,
   aspectRatio: string,
   referenceImage?: string,
@@ -49,7 +43,6 @@ async function generateWithNovart(
 
   const parts: any[] = [{ text: prompt }];
 
-  // 如果有参考图（base64 data URI），添加到parts让模型理解品牌风格
   if (referenceImage) {
     let mimeType = 'image/png';
     let base64Data = referenceImage;
@@ -60,31 +53,16 @@ async function generateWithNovart(
         base64Data = match[2];
       }
     }
-    parts.push({
-      inlineData: {
-        mimeType,
-        data: base64Data,
-      },
-    });
+    parts.push({ inlineData: { mimeType, data: base64Data } });
   }
 
   const body = {
-    contents: [
-      {
-        role: 'user',
-        parts,
-      },
-    ],
+    contents: [{ role: 'user', parts }],
     generationConfig: {
       responseModalities: ['TEXT', 'IMAGE'],
-      imageConfig: {
-        aspectRatio,
-        novartResolution: '2k',
-      },
+      imageConfig: { aspectRatio, novartResolution: '2k' },
     },
-    novart: {
-      includeResultUrls: true,
-    },
+    novart: { includeResultUrls: true },
   };
 
   try {
@@ -95,19 +73,16 @@ async function generateWithNovart(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
-      // 单张图片可能需要较长生成时间
       signal: AbortSignal.timeout(180_000),
     });
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error(`Novart API error (${res.status}):`, errText.slice(0, 500));
+      console.error(`Novart error (${res.status}):`, errText.slice(0, 300));
       return null;
     }
 
     const data = await res.json();
-
-    // 提取图片：candidates[0].content.parts[].inlineData
     const parts_arr = data?.candidates?.[0]?.content?.parts || [];
     let imageData = '';
     for (const p of parts_arr) {
@@ -116,95 +91,86 @@ async function generateWithNovart(
         break;
       }
     }
-
-    // 提取下载URL（如果返回了的话）
     const downloadUrl = data?.novart?.results?.[0]?.download_url;
 
-    if (!imageData && !downloadUrl) {
-      console.error('No image in Novart response:', JSON.stringify(data).slice(0, 300));
-      return null;
-    }
-
-    return {
-      imageData: imageData || '',
-      downloadUrl: downloadUrl || undefined,
-    };
+    if (!imageData && !downloadUrl) return null;
+    return { imageData: imageData || '', downloadUrl: downloadUrl || undefined };
   } catch (err: any) {
     console.error('Novart fetch error:', err?.message || err);
     return null;
   }
 }
 
+/**
+ * POST /api/adforge
+ * 支持两种模式：
+ * 1. 单张生成：{ sceneIndex, ...params } → 返回 { image }
+ * 2. 批量生成：{ ...params } (无sceneIndex) → 返回 { images }
+ */
 export async function POST(req: NextRequest) {
   if (!NOVART_API_KEY) {
-    return NextResponse.json(
-      { error: '未配置 Novart API Key，请联系管理员' },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: '未配置 API Key' }, { status: 400 });
   }
 
   const body = await req.json();
-  const { brandName, brandColors, sellingPoint, targetCountry, styleContext, referenceImage } = body;
+  const { brandName, brandColors, sellingPoint, targetCountry, styleContext, referenceImage, sceneIndex } = body;
 
   if (!brandName || !sellingPoint) {
     return NextResponse.json({ error: '品牌名和卖点必填' }, { status: 400 });
   }
 
-  const images: ImageResult[] = [];
+  const colorsHint = brandColors?.length
+    ? `Brand color palette: ${brandColors.slice(0, 3).join(', ')}. Use these as accent colors.`
+    : 'Professional, modern color palette.';
 
-  // 并行生成8张，但限制并发为3（避免API限流）
-  const tasks = SCENES.map((scene, i) => {
-    const aspectRatio = ASPECT_RATIOS[i];
-    const colorsHint = brandColors?.length
-      ? `Brand color palette: ${brandColors.slice(0, 3).join(', ')}. Use these as accent colors.`
-      : 'Professional, modern color palette.';
+  const buildPrompt = (scene: typeof SCENES[0]) => [
+    `Professional e-commerce advertisement for brand "${brandName}".`,
+    `Product: ${sellingPoint}.`,
+    `Scene: ${scene.desc}.`,
+    `Target audience: ${targetCountry || 'US'} consumers. Match local aesthetic preferences.`,
+    `Style: ${colorsHint} Clean composition, natural lighting, shallow depth of field. Premium commercial photography quality.`,
+    styleContext ? `\nBrand DNA Context (CRITICAL): ${styleContext}` : '',
+    referenceImage ? '\nCRITICAL: The attached reference image shows the brand visual style. Match its color scheme, mood, and aesthetic.' : '',
+    `Requirements: Product is the hero. Aspirational but authentic. No text overlay. High resolution, sharp details.`,
+  ].join('\n');
 
-    const prompt = [
-      `Professional e-commerce advertisement for brand "${brandName}".`,
-      `Product: ${sellingPoint}.`,
-      `Scene: ${scene.desc}.`,
-      `Target audience: ${targetCountry || 'US'} consumers. Match local aesthetic preferences.`,
-      `Style: ${colorsHint} Clean composition, natural lighting, shallow depth of field. Premium commercial photography quality.`,
-      styleContext ? `\nBrand DNA Context (CRITICAL - follow this style strictly): ${styleContext}` : '',
-      referenceImage ? '\nCRITICAL: The attached reference image shows the brand visual style. Match its color scheme, mood, and aesthetic in the generated ad.' : '',
-      `Requirements: Product is the hero. Aspirational but authentic. No text overlay. High resolution, sharp details.`,
-    ].join('\n');
+  // 单张模式：前端逐张请求，避免serverless超时
+  if (typeof sceneIndex === 'number' && sceneIndex >= 0 && sceneIndex < SCENES.length) {
+    const scene = SCENES[sceneIndex];
+    const aspectRatio = ASPECT_RATIOS[sceneIndex];
+    const prompt = buildPrompt(scene);
 
-    return { prompt, aspectRatio, scene, index: i };
-  });
+    const result = await generateSingle(prompt, aspectRatio, referenceImage);
+    if (!result) {
+      return NextResponse.json({ error: `场景"${scene.label}"生成失败` }, { status: 500 });
+    }
 
-  // 分批执行，每批3个并发
-  const BATCH_SIZE = 3;
-  for (let batchStart = 0; batchStart < tasks.length; batchStart += BATCH_SIZE) {
-    const batch = tasks.slice(batchStart, batchStart + BATCH_SIZE);
-    const results = await Promise.allSettled(
-      batch.map(task =>
-        generateWithNovart(task.prompt, task.aspectRatio, referenceImage)
-          .then(result => {
-            if (result) {
-              const url = result.downloadUrl || result.imageData;
-              images.push({
-                url,
-                platform: getAspectRatioLabel(task.aspectRatio),
-                scene: task.scene.label,
-              });
-            }
-          })
-      )
-    );
-    // Log failures
-    results.forEach((r, i) => {
-      if (r.status === 'rejected') {
-        console.error(`Scene "${batch[i].scene.label}" failed:`, r.reason);
-      }
+    return NextResponse.json({
+      image: {
+        url: result.downloadUrl || result.imageData,
+        platform: getAspectRatioLabel(aspectRatio),
+        scene: scene.label,
+      },
     });
   }
 
+  // 批量模式：后端一次生成8张（适用于非Vercel环境）
+  const images: any[] = [];
+  for (let i = 0; i < SCENES.length; i++) {
+    const scene = SCENES[i];
+    const prompt = buildPrompt(scene);
+    const result = await generateSingle(prompt, ASPECT_RATIOS[i], referenceImage);
+    if (result) {
+      images.push({
+        url: result.downloadUrl || result.imageData,
+        platform: getAspectRatioLabel(ASPECT_RATIOS[i]),
+        scene: scene.label,
+      });
+    }
+  }
+
   if (images.length === 0) {
-    return NextResponse.json(
-      { error: '全部生成失败，请稍后重试' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: '全部生成失败，请稍后重试' }, { status: 500 });
   }
 
   return NextResponse.json({ images });

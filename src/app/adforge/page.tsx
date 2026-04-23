@@ -109,24 +109,42 @@ export default function AdForgePage() {
         `Brand DNA summary: ${dna.description}`,
       ].join('. ') : '';
 
-      const res = await fetch('/api/adforge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          brandName: brandName.trim(),
-          brandColors,
-          sellingPoint: sellingPoint.trim(),
-          targetCountry,
-          styleContext,
-          referenceImage: previewSrc || undefined,
-        }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? '生成失败');
+      const basePayload = {
+        brandName: brandName.trim(),
+        brandColors,
+        sellingPoint: sellingPoint.trim(),
+        targetCountry,
+        styleContext,
+        referenceImage: previewSrc || undefined,
+      };
+
+      // 逐张请求，每张独立，流式追加到images
+      const sceneCount = 8;
+      let failCount = 0;
+      for (let i = 0; i < sceneCount; i++) {
+        try {
+          const res = await fetch('/api/adforge', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...basePayload, sceneIndex: i }),
+          });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            failCount++;
+            continue;
+          }
+          const data = await res.json();
+          if (data.image) {
+            setImages(prev => [...prev, data.image]);
+          }
+        } catch {
+          failCount++;
+        }
       }
-      const data = await res.json();
-      setImages(data.images ?? []);
+
+      if (failCount === sceneCount) {
+        setError('全部生成失败，请稍后重试');
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : '出错了');
     } finally {
@@ -417,7 +435,7 @@ export default function AdForgePage() {
         {/* ─── 第三步：结果 ─── */}
         {step === 3 && (
           <div className="max-w-5xl mx-auto px-6 py-10">
-            {loading && (
+            {loading && images.length === 0 && (
               <div className="flex flex-col items-center gap-6 py-24">
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center animate-pulse"
                   style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.15)' }}>
@@ -425,12 +443,39 @@ export default function AdForgePage() {
                 </div>
                 <div className="text-center">
                   <p className="text-base font-medium text-white mb-1">正在用品牌DNA生成广告素材</p>
-                  <p className="text-sm text-white/25">8张 × 多平台适配，约30-60秒</p>
+                  <p className="text-sm text-white/25">逐张生成中，每张约30-60秒...</p>
                 </div>
                 <div className="flex gap-1.5 mt-2">
                   {[0,1,2,3,4,5,6,7].map(i => (
                     <div key={i} className="w-1.5 h-1.5 rounded-full bg-violet-400/50 animate-bounce" style={{ animationDelay: `${i*150}ms` }} />
                   ))}
+                </div>
+              </div>
+            )}
+
+            {(loading || images.length > 0) && images.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h2 className="text-xl font-bold text-white">
+                      {loading ? `生成中... (${images.length}/8)` : '生成完成'}
+                    </h2>
+                    <p className="text-sm text-white/25 mt-0.5">{images.length} 张品牌广告素材{loading ? '已就绪' : ''}</p>
+                  </div>
+                  {!loading && (
+                    <div className="flex gap-2">
+                      <button onClick={restartFromStep2}
+                        className="px-3.5 h-9 rounded-lg text-sm text-white/35 hover:text-white/60 flex items-center gap-1.5 transition-all"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <RotateCcw className="w-3.5 h-3.5" /> 换一版
+                      </button>
+                      <button onClick={reset}
+                        className="px-3.5 h-9 rounded-lg text-sm text-white/35 hover:text-white/60 transition-all"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        新建
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -454,26 +499,8 @@ export default function AdForgePage() {
               </div>
             )}
 
-            {!loading && images.length > 0 && (
+            {images.length > 0 && (
               <>
-                <div className="flex items-center justify-between mb-8">
-                  <div>
-                    <h2 className="text-xl font-bold text-white">生成完成</h2>
-                    <p className="text-sm text-white/25 mt-0.5">{images.length} 张品牌广告素材已就绪</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={restartFromStep2}
-                      className="px-3.5 h-9 rounded-lg text-sm text-white/35 hover:text-white/60 flex items-center gap-1.5 transition-all"
-                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                      <RotateCcw className="w-3.5 h-3.5" /> 换一版
-                    </button>
-                    <button onClick={reset}
-                      className="px-3.5 h-9 rounded-lg text-sm text-white/35 hover:text-white/60 transition-all"
-                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                      新建
-                    </button>
-                  </div>
-                </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                   {images.map((img, i) => (
                     <div key={i} className="group relative rounded-2xl overflow-hidden transition-all hover:scale-[1.02]"
