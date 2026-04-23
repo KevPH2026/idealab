@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { ArrowRight, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 
 type Lang = 'zh' | 'en';
 
@@ -75,7 +75,6 @@ const DEMO_SERIES: DemoSeries[] = [
       { src: '/demo/tech_04.webp', label: 'IG Feed 1:1', ratio: 'square' },
       { src: '/demo/tech_05.webp', label: 'Story 9:16', ratio: 'tall' },
       { src: '/demo/tech_06.webp', label: 'FB Ad 16:9', ratio: 'wide' },
-      { src: '/demo/tech_07.webp', label: 'IG Feed 1:1', ratio: 'square' },
     ],
   },
   {
@@ -84,8 +83,8 @@ const DEMO_SERIES: DemoSeries[] = [
     emoji: '🧴',
     images: [
       { src: '/demo/beauty_01.webp', label: 'IG Feed 1:1', ratio: 'square' },
-      { src: '/demo/beauty_02.webp', label: 'FB Ad 16:9', ratio: 'wide' },
       { src: '/demo/beauty_03.webp', label: 'Story 9:16', ratio: 'tall' },
+      { src: '/demo/beauty_02.webp', label: 'FB Ad 16:9', ratio: 'wide' },
       { src: '/demo/beauty_04.webp', label: 'FB Ad 16:9', ratio: 'wide' },
     ],
   },
@@ -95,8 +94,8 @@ const DEMO_SERIES: DemoSeries[] = [
     emoji: '☕',
     images: [
       { src: '/demo/coffee_01.webp', label: 'IG Feed 1:1', ratio: 'square' },
-      { src: '/demo/coffee_02.webp', label: 'FB Ad 16:9', ratio: 'wide' },
       { src: '/demo/coffee_03.webp', label: 'Story 9:16', ratio: 'tall' },
+      { src: '/demo/coffee_02.webp', label: 'FB Ad 16:9', ratio: 'wide' },
       { src: '/demo/coffee_04.webp', label: 'FB Ad 16:9', ratio: 'wide' },
     ],
   },
@@ -106,23 +105,17 @@ const DEMO_SERIES: DemoSeries[] = [
     emoji: '👟',
     images: [
       { src: '/demo/sport_01.webp', label: 'IG Feed 1:1', ratio: 'square' },
-      { src: '/demo/sport_02.webp', label: 'FB Ad 16:9', ratio: 'wide' },
       { src: '/demo/sport_03.webp', label: 'Story 9:16', ratio: 'tall' },
+      { src: '/demo/sport_02.webp', label: 'FB Ad 16:9', ratio: 'wide' },
       { src: '/demo/sport_04.webp', label: 'FB Ad 16:9', ratio: 'wide' },
     ],
   },
 ];
 
-function SeriesGrid({ series }: { series: DemoSeries }) {
-  const hasWide = series.images.some(i => i.ratio === 'wide');
-  const hasTall = series.images.some(i => i.ratio === 'tall');
-
-  // For series with 7 images (like tech), use a masonry 4-col layout
-  // For series with 4 images, use 3-col layout
-
+function CarouselGrid({ series }: { series: DemoSeries }) {
   return (
-    <div className="rounded-2xl p-[1px] group/series"
-      style={{ background: 'linear-gradient(145deg, rgba(139,92,246,0.2), rgba(255,255,255,0.03), rgba(6,182,212,0.12))' }}>
+    <div className="rounded-2xl p-[1px]"
+      style={{ background: 'linear-gradient(145deg, rgba(139,92,246,0.25), rgba(255,255,255,0.04), rgba(6,182,212,0.15))' }}>
       <div className="rounded-2xl p-4 md:p-5"
         style={{ background: 'rgba(10,10,15,0.95)', backdropFilter: 'blur(20px)' }}>
         {/* Header */}
@@ -130,11 +123,11 @@ function SeriesGrid({ series }: { series: DemoSeries }) {
           <div className="w-2 h-2 rounded-full bg-violet-500"
             style={{ boxShadow: '0 0 8px rgba(139,92,246,0.6)' }} />
           <span className="text-sm text-white/50 font-medium">{series.emoji}</span>
-          <span className="text-xs text-white/30 font-medium">{series.category}</span>
+          <span className="text-sm text-white/40 font-semibold">{series.category}</span>
           <span className="text-[10px] text-white/15 font-mono ml-auto">{series.name}</span>
         </div>
-        {/* Grid */}
-        <div className={series.images.length >= 6 ? 'grid grid-cols-4 gap-1.5 md:gap-2' : 'grid grid-cols-3 gap-1.5 md:gap-2'}>
+        {/* Grid — always 4-col masonry */}
+        <div className="grid grid-cols-4 gap-1.5 md:gap-2">
           {series.images.map((img, i) => {
             let cellClass = 'group relative rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:z-10';
             let innerClass = '';
@@ -173,7 +166,21 @@ function SeriesGrid({ series }: { series: DemoSeries }) {
 
 export default function LandingPage() {
   const [lang, setLang] = useState<Lang>('zh');
+  const [activeSeries, setActiveSeries] = useState(0);
   const t = T[lang];
+
+  const total = DEMO_SERIES.length;
+
+  const next = useCallback(() => setActiveSeries(i => (i + 1) % total), [total]);
+  const prev = useCallback(() => setActiveSeries(i => (i - 1 + total) % total), [total]);
+
+  // Auto-advance every 5s
+  useEffect(() => {
+    const timer = setInterval(next, 5000);
+    return () => clearInterval(timer);
+  }, [next]);
+
+  const series = DEMO_SERIES[activeSeries];
 
   return (
     <div className="min-h-screen bg-[#050507] text-white selection:bg-violet-500/30 overflow-x-hidden">
@@ -187,8 +194,6 @@ export default function LandingPage() {
         style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%)', filter: 'blur(80px)' }} />
       <div className="fixed top-[200px] right-[-300px] w-[800px] h-[600px] rounded-full pointer-events-none"
         style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.07) 0%, transparent 70%)', filter: 'blur(100px)' }} />
-      <div className="fixed bottom-[-200px] left-[30%] w-[500px] h-[500px] rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(244,63,94,0.06) 0%, transparent 70%)', filter: 'blur(80px)' }} />
 
       {/* ─── Nav ─── */}
       <nav className="fixed top-0 inset-x-0 z-50"
@@ -259,14 +264,42 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── Demo Gallery ─── */}
+      {/* ─── Demo Carousel ─── */}
       <section id="demo" className="px-6 pb-20">
         <div className="max-w-5xl mx-auto">
           <p className="text-center text-[10px] text-white/12 uppercase tracking-[5px] mb-1">Generated by 100x</p>
-          <p className="text-center text-xs text-white/20 mb-8">{t.demoCaption}</p>
-          <div className="space-y-5">
-            {DEMO_SERIES.map((series, i) => (
-              <SeriesGrid key={i} series={series} />
+          <p className="text-center text-xs text-white/20 mb-6">{t.demoCaption}</p>
+
+          {/* Carousel */}
+          <div className="relative">
+            <CarouselGrid series={series} />
+
+            {/* Nav arrows */}
+            <button onClick={prev}
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 md:-translate-x-5 w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110"
+              style={{ background: 'rgba(10,10,15,0.8)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)' }}>
+              <ChevronLeft className="w-4 h-4 text-white/50" />
+            </button>
+            <button onClick={next}
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 md:translate-x-5 w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110"
+              style={{ background: 'rgba(10,10,15,0.8)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)' }}>
+              <ChevronRight className="w-4 h-4 text-white/50" />
+            </button>
+          </div>
+
+          {/* Dots + series tabs */}
+          <div className="flex items-center justify-center gap-2 mt-5">
+            {DEMO_SERIES.map((s, i) => (
+              <button key={i} onClick={() => setActiveSeries(i)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all"
+                style={{
+                  background: i === activeSeries ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.03)',
+                  border: i === activeSeries ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.05)',
+                  color: i === activeSeries ? 'rgba(196,181,253,0.9)' : 'rgba(255,255,255,0.2)',
+                }}>
+                <span className="text-[11px]">{s.emoji}</span>
+                <span className="hidden sm:inline text-[11px] font-medium">{s.category}</span>
+              </button>
             ))}
           </div>
         </div>
