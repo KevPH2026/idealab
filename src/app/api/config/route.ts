@@ -29,6 +29,7 @@ export async function GET() {
     configured: {
       openrouter: !!config.openrouter?.apiKey,
       minimax: !!config.minimax?.apiKey,
+      openai: !!config.openai?.apiKey,
     },
     models: {
       visionModel: config.openrouter?.visionModel || "qwen/qwen2.5-vl-72b-instruct",
@@ -60,6 +61,11 @@ export async function GET() {
     branding: {
       brandName: config.branding?.brandName || "IdeaLab",
       brandTagline: config.branding?.brandTagline || "AI灵感创作平台",
+    },
+    adforge: {
+      apiKey: !!config.openai?.apiKey,
+      baseUrl: config.openai?.baseUrl || "https://api.openai.com/v1",
+      model: config.openai?.imageModel || "gpt-image-2",
     },
     updatedAt: config.updatedAt,
   });
@@ -118,6 +124,12 @@ export async function PUT(req: NextRequest) {
         enableLogoWatermark: body.enableLogoWatermark ?? existing.features?.enableLogoWatermark ?? false,
         enableAutoRetry: body.enableAutoRetry ?? existing.features?.enableAutoRetry ?? true,
         enableMultiFormat: body.enableMultiFormat ?? existing.features?.enableMultiFormat ?? false,
+      },
+      openai: {
+        ...existing.openai,
+        apiKey: body.openaiKey?.trim() || existing.openai?.apiKey || "",
+        baseUrl: body.openaiBaseUrl?.trim() || existing.openai?.baseUrl || "https://api.openai.com/v1",
+        imageModel: body.openaiImageModel || existing.openai?.imageModel || "gpt-image-2",
       },
       branding: {
         brandName: body.brandName || existing.branding?.brandName || "IdeaLab",

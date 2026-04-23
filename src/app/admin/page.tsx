@@ -4,10 +4,11 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Eye, EyeOff, Check, AlertCircle, RefreshCw, Server, Key, Cpu, Image, MessageSquare, Sliders, Globe, ToggleLeft, ToggleRight, Save, Lock } from "lucide-react";
+import { Eye, EyeOff, Check, AlertCircle, RefreshCw, Server, Key, Cpu, Image, MessageSquare, Sliders, Globe, ToggleLeft, ToggleRight, Save, Lock, Sparkles } from "lucide-react";
 
 interface ConfigStatus {
-  configured: { openrouter: boolean; minimax: boolean };
+  configured: { openrouter: boolean; minimax: boolean; openai: boolean };
+  adforge: { apiKey: boolean; baseUrl: string; model: string };
   models: {
     visionModel: string; copyModel: string; imageModel: string;
     visionTemp?: number; copyTemp?: number;
@@ -27,6 +28,7 @@ interface ConfigForm {
   outputLanguage: string; outputVariations: number;
   enableLogoWatermark: boolean; enableAutoRetry: boolean; enableMultiFormat: boolean;
   brandName: string; brandTagline: string;
+  openaiKey: string; openaiBaseUrl: string; openaiImageModel: string;
 }
 
 const VISION_MODELS = [
@@ -177,9 +179,11 @@ export default function AdminPage() {
     outputLanguage: "zh", outputVariations: 1,
     enableLogoWatermark: false, enableAutoRetry: true, enableMultiFormat: false,
     brandName: "IdeaLab", brandTagline: "AI灵感创作平台",
+    openaiKey: "", openaiBaseUrl: "https://api.xas231.online/v1", openaiImageModel: "gemini-3.0-pro-image-landscape-2k",
   });
   const [showOpenRouter, setShowOpenRouter] = useState(false);
   const [showMiniMax, setShowMiniMax] = useState(false);
+  const [showOpenAI, setShowOpenAI] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
@@ -257,6 +261,13 @@ export default function AdminPage() {
           copyPromptTemplate: data.prompts.copyTemplate || f.copyPromptTemplate,
         }));
       }
+      if (data.adforge) {
+        setForm(f => ({
+          ...f,
+          openaiBaseUrl: data.adforge.baseUrl || f.openaiBaseUrl,
+          openaiImageModel: data.adforge.model || f.openaiImageModel,
+        }));
+      }
     } catch { setError("获取配置失败"); }
     finally { setLoading(false); }
   }
@@ -316,6 +327,7 @@ export default function AdminPage() {
     { id: "keys", label: "API Keys", icon: <Key className="w-4 h-4" /> },
     { id: "models", label: "模型配置", icon: <Cpu className="w-4 h-4" /> },
     { id: "image", label: "图片生成", icon: <Image className="w-4 h-4" /> },
+    { id: "adforge", label: "100x", icon: <Sparkles className="w-4 h-4" /> },
     { id: "prompts", label: "提示词模板", icon: <MessageSquare className="w-4 h-4" /> },
     { id: "output", label: "输出与品牌", icon: <Globe className="w-4 h-4" /> },
     { id: "features", label: "功能开关", icon: <Sliders className="w-4 h-4" /> },
@@ -544,6 +556,95 @@ export default function AdminPage() {
               </div>
             </Card>
           </div>
+        )}
+
+        {/* Tab: AdForge */}
+        {activeTab === "adforge" && (
+          <Card className="p-8 bg-white/[0.03] border-white/10">
+            <h2 className="text-lg font-bold mb-2 flex items-center gap-3">
+              <Sparkles className="w-5 h-5 text-violet-400" /> 100x · 素材工场配置
+            </h2>
+            <p className="text-sm text-white/40 mb-8">
+              配置广告素材生成所用的图片生成 API（支持 OpenAI 及兼容接口）
+            </p>
+
+            {/* Status */}
+            <div className={`rounded-xl p-4 flex items-center gap-3 mb-8 ${
+              status?.adforge?.apiKey
+                ? "bg-green-500/10 border border-green-500/20"
+                : "bg-amber-500/10 border border-amber-500/20"
+            }`}>
+              {status?.adforge?.apiKey ? (
+                <>
+                  <Check className="w-4 h-4 text-green-400" />
+                  <span className="text-sm text-green-300">API Key 已配置，100x 可用</span>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="w-4 h-4 text-amber-400" />
+                  <span className="text-sm text-amber-300">未配置 API Key，100x 无法生成素材</span>
+                </>
+              )}
+            </div>
+
+            <div className="space-y-6">
+              {/* API Key */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-white/70">API Key</label>
+                  <span className="text-xs text-white/30">图片生成服务密钥</span>
+                </div>
+                <div className="relative">
+                  <Input
+                    type={showOpenAI ? "text" : "password"}
+                    value={form.openaiKey}
+                    onChange={e => setForm({ ...form, openaiKey: e.target.value })}
+                    placeholder="sk-...（留空则不更新）"
+                    className="bg-white/5 border-white/10 text-white pr-10"
+                  />
+                  <button type="button" onClick={() => setShowOpenAI(!showOpenAI)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white">
+                    {showOpenAI ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Base URL */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-white/70">接口地址 (Base URL)</label>
+                  <span className="text-xs text-white/30">支持 OpenAI 兼容接口</span>
+                </div>
+                <Input
+                  type="text"
+                  value={form.openaiBaseUrl}
+                  onChange={e => setForm({ ...form, openaiBaseUrl: e.target.value })}
+                  placeholder="https://api.openai.com/v1"
+                  className="bg-white/5 border-white/10 text-white"
+                />
+                <p className="text-xs text-white/20 mt-1.5">
+                  默认 https://api.openai.com/v1。可替换为兼容接口地址（如 Azure OpenAI、中转服务等）
+                </p>
+              </div>
+
+              {/* Model */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-white/70">图片生成模型</label>
+                </div>
+                <Input
+                  type="text"
+                  value={form.openaiImageModel}
+                  onChange={e => setForm({ ...form, openaiImageModel: e.target.value })}
+                  placeholder="gpt-image-2"
+                  className="bg-white/5 border-white/10 text-white"
+                />
+                <p className="text-xs text-white/20 mt-1.5">
+                  默认 gpt-image-2。如使用其他兼容接口可改为对应模型名（如 dall-e-3）
+                </p>
+              </div>
+            </div>
+          </Card>
         )}
 
         {/* Tab: Prompts */}

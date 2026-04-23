@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <!-- Chrome metallic gradient -->
+    <linearGradient id="chrome" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#b91c1c"/>
+    </linearGradient>
+    <!-- Metallic sheen -->
+    <linearGradient id="sheen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.3"/>
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="60%" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.2"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded square background -->
+  <rect x="4" y="4" width="112" height="112" rx="28" fill="url(#chrome)"/>
+  <!-- Metallic sheen overlay -->
+  <rect x="4" y="4" width="112" height="112" rx="28" fill="url(#sheen)"/>
+  <!-- 100x text -->
+  <text x="60" y="74" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="40" fill="white" letter-spacing="-3">100x</text>
+</svg>
