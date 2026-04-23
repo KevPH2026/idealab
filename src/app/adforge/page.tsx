@@ -118,6 +118,7 @@ export default function AdForgePage() {
           sellingPoint: sellingPoint.trim(),
           targetCountry,
           styleContext,
+          referenceImage: previewSrc || undefined,
         }),
       });
       if (!res.ok) {

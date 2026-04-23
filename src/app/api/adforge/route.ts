@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Novart API 配置（仅后端，key存在环境变量中）
 const NOVART_API_KEY = process.env.NOVART_API_KEY || '';
 const NOVART_BASE_URL = process.env.NOVART_BASE_URL || 'https://www.novartspace.art';
 const NOVART_MODEL = 'nova-g-image-2';
@@ -16,7 +15,7 @@ const SCENES = [
   { desc: 'happy customer using product outdoors, warm natural tones', label: '用户场景' },
 ];
 
-// 8张素材的宽高比分配 (nova-g-image-2: auto, 16:9, 9:16, 1:1, 3:2, 2:3)
+// nova-g-image-2: auto, 16:9, 9:16, 1:1, 3:2, 2:3
 const ASPECT_RATIOS = ['1:1', '9:16', '16:9', '1:1', '2:3', '9:16', '16:9', '3:2'];
 
 interface ImageResult {
@@ -39,6 +38,7 @@ function getAspectRatioLabel(ratio: string): string {
 
 /**
  * 调用 Novart API (Google-style generateContent)
+ * 支持参考图输入：styleInjection模式下传参考图
  */
 async function generateWithNovart(
   prompt: string,
@@ -49,7 +49,7 @@ async function generateWithNovart(
 
   const parts: any[] = [{ text: prompt }];
 
-  // 如果有参考图（base64 data URI），添加到parts
+  // 如果有参考图（base64 data URI），添加到parts让模型理解品牌风格
   if (referenceImage) {
     let mimeType = 'image/png';
     let base64Data = referenceImage;
@@ -95,6 +95,8 @@ async function generateWithNovart(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+      // 单张图片可能需要较长生成时间
+      signal: AbortSignal.timeout(180_000),
     });
 
     if (!res.ok) {
@@ -115,7 +117,7 @@ async function generateWithNovart(
       }
     }
 
-    // 提取下载URL
+    // 提取下载URL（如果返回了的话）
     const downloadUrl = data?.novart?.results?.[0]?.download_url;
 
     if (!imageData && !downloadUrl) {
@@ -150,6 +152,7 @@ export async function POST(req: NextRequest) {
 
   const images: ImageResult[] = [];
 
+  // 并行生成8张，但限制并发为3（避免API限流）
   const tasks = SCENES.map((scene, i) => {
     const aspectRatio = ASPECT_RATIOS[i];
     const colorsHint = brandColors?.length
@@ -163,26 +166,39 @@ export async function POST(req: NextRequest) {
       `Target audience: ${targetCountry || 'US'} consumers. Match local aesthetic preferences.`,
       `Style: ${colorsHint} Clean composition, natural lighting, shallow depth of field. Premium commercial photography quality.`,
       styleContext ? `\nBrand DNA Context (CRITICAL - follow this style strictly): ${styleContext}` : '',
+      referenceImage ? '\nCRITICAL: The attached reference image shows the brand visual style. Match its color scheme, mood, and aesthetic in the generated ad.' : '',
       `Requirements: Product is the hero. Aspirational but authentic. No text overlay. High resolution, sharp details.`,
     ].join('\n');
 
-    return generateWithNovart(prompt, aspectRatio, referenceImage)
-      .then((result) => {
-        if (result) {
-          const url = result.downloadUrl || result.imageData;
-          images.push({
-            url,
-            platform: getAspectRatioLabel(aspectRatio),
-            scene: scene.label,
-          });
-        }
-      })
-      .catch((err) => {
-        console.error(`Scene "${scene.label}" failed:`, err?.message || err);
-      });
+    return { prompt, aspectRatio, scene, index: i };
   });
 
-  await Promise.all(tasks);
+  // 分批执行，每批3个并发
+  const BATCH_SIZE = 3;
+  for (let batchStart = 0; batchStart < tasks.length; batchStart += BATCH_SIZE) {
+    const batch = tasks.slice(batchStart, batchStart + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(task =>
+        generateWithNovart(task.prompt, task.aspectRatio, referenceImage)
+          .then(result => {
+            if (result) {
+              const url = result.downloadUrl || result.imageData;
+              images.push({
+                url,
+                platform: getAspectRatioLabel(task.aspectRatio),
+                scene: task.scene.label,
+              });
+            }
+          })
+      )
+    );
+    // Log failures
+    results.forEach((r, i) => {
+      if (r.status === 'rejected') {
+        console.error(`Scene "${batch[i].scene.label}" failed:`, r.reason);
+      }
+    });
+  }
 
   if (images.length === 0) {
     return NextResponse.json(
