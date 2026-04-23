@@ -88,15 +88,13 @@ const T = {
   },
 };
 
-const AD_CARDS = [
-  { label: 'IG Feed', size: '1:1', color: 'from-violet-600 to-fuchsia-500' },
-  { label: 'Story', size: '9:16', color: 'from-cyan-500 to-blue-600' },
-  { label: 'FB Ad', size: '16:9', color: 'from-amber-500 to-orange-600' },
-  { label: 'TikTok', size: '9:16', color: 'from-pink-500 to-rose-600' },
-  { label: 'Google', size: '1.91:1', color: 'from-emerald-500 to-teal-600' },
-  { label: 'Pinterest', size: '2:3', color: 'from-indigo-500 to-purple-600' },
-  { label: 'IG Feed', size: '1:1', color: 'from-fuchsia-500 to-pink-600' },
-  { label: 'FB Ad', size: '16:9', color: 'from-blue-500 to-violet-600' },
+const DEMO_IMAGES = [
+  { src: '/demo/01_IG_Feed_1x1.png', label: 'IG Feed', size: '1:1' },
+  { src: '/demo/02_Story_9x16.png', label: 'Story', size: '9:16' },
+  { src: '/demo/03_FB_16x9.png', label: 'FB Ad', size: '16:9' },
+  { src: '/demo/04_IG_Feed2_1x1.png', label: 'IG Feed', size: '1:1' },
+  { src: '/demo/06_Story2_9x16.png', label: 'Story', size: '9:16' },
+  { src: '/demo/07_FB2_16x9.png', label: 'FB Ad', size: '16:9' },
 ];
 
 export default function LandingPage() {
@@ -209,32 +207,33 @@ export default function LandingPage() {
                   <Download className="w-3 h-3" /> {t.exportAll}
                 </button>
               </div>
-              <div className="grid grid-cols-4 gap-2 md:gap-3">
-                {AD_CARDS.map((card, i) => (
-                  <div key={i} className="group relative rounded-xl overflow-hidden cursor-pointer transition-all hover:scale-[1.03] hover:z-10"
+              <div className="grid grid-cols-3 gap-2 md:gap-3">
+                {DEMO_IMAGES.map((img, i) => (
+                  <div key={i} className={`group relative rounded-xl overflow-hidden cursor-pointer transition-all hover:scale-[1.02] hover:z-10 ${
+                    img.size === '9:16' ? 'row-span-2' : ''
+                  }`}
                     style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div className={`bg-gradient-to-br ${card.color} ${
-                      card.size === '9:16' ? 'aspect-[9/16] row-span-2' :
-                      card.size === '16:9' ? 'aspect-video' :
-                      card.size === '1.91:1' ? 'aspect-[1.91/1]' :
-                      card.size === '2:3' ? 'aspect-[2/3]' :
+                    <div className={
+                      img.size === '9:16' ? 'aspect-[9/16]' :
+                      img.size === '16:9' ? 'aspect-video' :
                       'aspect-square'
-                    }`}>
-                      <div className="absolute inset-0 flex flex-col justify-between p-2.5 md:p-3">
-                        <div className="flex justify-between items-start">
-                          <span className="text-[8px] font-bold text-white/90 px-1.5 py-0.5 rounded-md"
-                            style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}>{card.label}</span>
-                          <span className="text-[7px] text-white/30">{card.size}</span>
-                        </div>
-                        <div className="space-y-1.5">
-                          <div className="h-2 w-14 bg-white/20 rounded" />
-                          <div className="h-1.5 w-10 bg-white/10 rounded" />
-                          <div className="inline-block text-[7px] font-bold bg-white text-black px-2 py-0.5 rounded-md">Shop Now →</div>
-                        </div>
-                      </div>
+                    }>
+                      <img
+                        src={img.src}
+                        alt={`${img.label} demo`}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center">
-                      <Download className="w-4 h-4 text-white opacity-0 group-hover:opacity-80 transition-opacity" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-between p-2.5 md:p-3">
+                      <div className="flex justify-between items-start">
+                        <span className="text-[9px] font-bold text-white/90 px-2 py-0.5 rounded-md"
+                          style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}>{img.label}</span>
+                        <span className="text-[8px] text-white/50 font-mono">{img.size}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Download className="w-3.5 h-3.5 text-white/80" />
+                        <span className="text-[9px] text-white/70 font-medium">Download</span>
+                      </div>
                     </div>
                   </div>
                 ))}
