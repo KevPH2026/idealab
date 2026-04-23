@@ -89,12 +89,12 @@ const T = {
 };
 
 const DEMO_IMAGES = [
-  { src: '/demo/01_IG_Feed_1x1.png', label: 'IG Feed', size: '1:1' },
-  { src: '/demo/02_Story_9x16.png', label: 'Story', size: '9:16' },
-  { src: '/demo/03_FB_16x9.png', label: 'FB Ad', size: '16:9' },
-  { src: '/demo/04_IG_Feed2_1x1.png', label: 'IG Feed', size: '1:1' },
-  { src: '/demo/06_Story2_9x16.png', label: 'Story', size: '9:16' },
-  { src: '/demo/07_FB2_16x9.png', label: 'FB Ad', size: '16:9' },
+  { src: '/demo/01_IG_Feed_1x1.webp', label: 'IG Feed', size: '1:1' },
+  { src: '/demo/02_Story_9x16.webp', label: 'Story', size: '9:16' },
+  { src: '/demo/03_FB_16x9.webp', label: 'FB Ad', size: '16:9' },
+  { src: '/demo/04_IG_Feed2_1x1.webp', label: 'IG Feed', size: '1:1' },
+  { src: '/demo/06_Story2_9x16.webp', label: 'Story', size: '9:16' },
+  { src: '/demo/07_FB2_16x9.webp', label: 'FB Ad', size: '16:9' },
 ];
 
 export default function LandingPage() {
