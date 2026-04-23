@@ -169,10 +169,20 @@ export async function POST(req: NextRequest) {
 
     // ── Validate keys ───────────────────────────────────────────────────
     if (!effectiveOpenRouterKey) {
-      return NextResponse.json(
-        { error: "未配置 OpenRouter API Key。请在设置中填入，或联系管理员开启服务端预设。", needKey: "openrouter" },
-        { status: 400 }
-      );
+      const envVal = process.env.OPENROUTER_API_KEY;
+      return NextResponse.json({
+        error: "未配置 OpenRouter API Key",
+        debug: {
+          envSet: !!envVal,
+          envLen: envVal?.length,
+          envFirst4: envVal?.slice(0,4),
+          envLast4: envVal?.slice(-4),
+          cfgSet: !!cfg.openrouter.apiKey,
+          cfgLen: cfg.openrouter.apiKey?.length,
+          cfgFirst4: cfg.openrouter.apiKey?.slice(0,4),
+        },
+        needKey: "openrouter",
+      }, { status: 400 });
     }
     if (!effectiveMiniMaxKey) {
       return NextResponse.json(
