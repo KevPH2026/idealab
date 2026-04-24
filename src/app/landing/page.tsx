@@ -29,27 +29,37 @@ const T = {
     planTitle: '按需选择，随时升级',
     plans: [
       {
-        name: 'Free',
-        badge: '免费体验',
+        name: 'Trial',
+        badge: '免注册',
         price: '¥0',
-        period: '永久免费',
-        desc: '注册即用，体验完整流程',
-        features: ['100次AI生成', '8种广告场景', '4种平台尺寸', '品牌DNA解码', '一键下载全部素材'],
-        cta: '免费注册',
+        period: '无需注册',
+        desc: '试试看，直接生成',
+        features: ['1次AI生成', '8种广告场景', '品牌DNA解码'],
+        cta: '立即试用',
         highlight: false,
       },
       {
+        name: 'Free',
+        badge: '注册即用',
+        price: '¥0',
+        period: '注册免费',
+        desc: '注册并认证，解锁更多',
+        features: ['100次AI生成', '8种广告场景', '全平台尺寸', '品牌DNA解码', '一键下载全部素材'],
+        cta: '免费注册',
+        highlight: true,
+      },
+      {
         name: 'Pro',
-        badge: '最受欢迎',
-        price: '¥199',
-        period: '/月',
+        badge: '即将推出',
+        price: '',
+        period: 'Coming Soon',
         desc: '专业卖家首选，无限素材产出',
         features: [
           '无限AI生成', '8种广告场景', '全平台尺寸', '品牌DNA解码',
           '批量导出 & 水印', '多品牌管理', 'A/B测试变体', '优先生成速度', '专属客服支持',
         ],
-        cta: '立即升级',
-        highlight: true,
+        cta: '加入候补',
+        highlight: false,
       },
     ],
   },
@@ -76,27 +86,37 @@ const T = {
     planTitle: 'Pick your plan, scale anytime',
     plans: [
       {
-        name: 'Free',
-        badge: 'Free tier',
+        name: 'Trial',
+        badge: 'No Sign-up',
         price: '$0',
-        period: 'Free forever',
-        desc: 'Sign up and experience the full workflow',
-        features: ['100 AI generations', '8 ad scenes', '4 platform sizes', 'Brand DNA decode', 'One-click download all'],
-        cta: 'Sign Up Free',
+        period: 'No account needed',
+        desc: 'Try it now, generate instantly',
+        features: ['1 AI generation', '8 ad scenes', 'Brand DNA decode'],
+        cta: 'Try Now',
         highlight: false,
       },
       {
+        name: 'Free',
+        badge: 'Sign Up',
+        price: '$0',
+        period: 'Free with account',
+        desc: 'Sign up & verify to unlock more',
+        features: ['100 AI generations', '8 ad scenes', 'All platform sizes', 'Brand DNA decode', 'One-click download all'],
+        cta: 'Sign Up Free',
+        highlight: true,
+      },
+      {
         name: 'Pro',
-        badge: 'Most Popular',
-        price: '$29',
-        period: '/mo',
+        badge: 'Coming Soon',
+        price: '',
+        period: 'Coming Soon',
         desc: 'For serious sellers, unlimited creatives',
         features: [
           'Unlimited AI generations', '8 ad scenes', 'All platform sizes', 'Brand DNA decode',
           'Batch export & watermark', 'Multi-brand management', 'A/B test variants', 'Priority generation speed', 'Dedicated support',
         ],
-        cta: 'Upgrade Now',
-        highlight: true,
+        cta: 'Join Waitlist',
+        highlight: false,
       },
     ],
   },
@@ -124,14 +144,12 @@ const DEMO_SERIES: DemoSeries[] = [
     name: 'SoundWave',
     category: '降噪耳机',
     emoji: '🎧',
-    tagline: '沉浸式降噪 · 随身音乐厅',
+    tagline: 'Immersive Silence · Portable Concert Hall',
     scenes: 'IG Feed × Story × FB Ad × TikTok',
     images: [
       { src: '/demo/tech_01.webp', label: 'IG Feed 1:1', ratio: 'square' },
       { src: '/demo/tech_02.webp', label: 'Story 9:16', ratio: 'tall' },
       { src: '/demo/tech_03.webp', label: 'FB Ad 16:9', ratio: 'wide' },
-      { src: '/demo/tech_04.webp', label: 'IG Feed 1:1', ratio: 'square' },
-      { src: '/demo/tech_05.webp', label: 'Story 9:16', ratio: 'tall' },
       { src: '/demo/tech_06.webp', label: 'FB Ad 16:9', ratio: 'wide' },
     ],
   },
@@ -139,7 +157,7 @@ const DEMO_SERIES: DemoSeries[] = [
     name: 'AuraGlow',
     category: '美妆护肤',
     emoji: '🧴',
-    tagline: '天然发光肌 · 一抹即现',
+    tagline: 'Natural Glow · Radiance in One Touch',
     scenes: 'IG Feed × Story × FB Ad × TikTok',
     images: [
       { src: '/demo/beauty_01.webp', label: 'IG Feed 1:1', ratio: 'square' },
@@ -152,7 +170,7 @@ const DEMO_SERIES: DemoSeries[] = [
     name: 'BeanCraft',
     category: '精品咖啡',
     emoji: '☕',
-    tagline: '精品手冲 · 每一杯都是仪式',
+    tagline: 'Specialty Pour-Over · Every Cup is a Ritual',
     scenes: 'IG Feed × Story × FB Ad × TikTok',
     images: [
       { src: '/demo/coffee_01.webp', label: 'IG Feed 1:1', ratio: 'square' },
@@ -165,7 +183,7 @@ const DEMO_SERIES: DemoSeries[] = [
     name: 'StridePro',
     category: '运动鞋',
     emoji: '👟',
-    tagline: '轻量缓震 · 突破每一步',
+    tagline: 'Lightweight Cushion · Break Every Limit',
     scenes: 'IG Feed × Story × FB Ad × TikTok',
     images: [
       { src: '/demo/sport_01.webp', label: 'IG Feed 1:1', ratio: 'square' },
@@ -182,8 +200,6 @@ const AD_COPY: Record<string, { headline: string; sub: string; cta: string }[]> 
     { headline: 'Silence The Noise', sub: 'Up to 98% noise cancellation', cta: 'GET YOURS →' },
     { headline: '30 Hours of Bliss', sub: 'All-day battery. Zero downtime.', cta: 'SHOP NOW →' },
     { headline: 'Hear What You\'ve Been Missing', sub: 'Hi-Res Audio · Spatial Sound', cta: 'TRY FREE →' },
-    { headline: 'Your Personal Concert Hall', sub: '50mm drivers · Deep bass', cta: 'GET YOURS →' },
-    { headline: 'Focus. Create. Repeat.', sub: 'AI-powered Focus Mode', cta: 'SHOP NOW →' },
     { headline: 'Sound That Moves You', sub: '360° Spatial Audio', cta: 'TRY FREE →' },
   ],
   AuraGlow: [
@@ -208,7 +224,6 @@ const AD_COPY: Record<string, { headline: string; sub: string; cta: string }[]> 
 
 function CarouselGrid({ series }: { series: DemoSeries }) {
   const copies = AD_COPY[series.name] || [];
-  const hasSix = series.images.length === 6;
 
   return (
     <div className="rounded-2xl p-[1px]"
@@ -225,32 +240,29 @@ function CarouselGrid({ series }: { series: DemoSeries }) {
           <span className="text-[10px] text-white/15 font-mono ml-auto">{series.name}</span>
         </div>
 
-        {/* Bento Grid — explicit areas, zero gaps */}
+        {/* Bento Grid — all series: sq + tall + wide1 / info + tall + wide2 */}
         <div className="grid gap-1.5 md:gap-2"
           style={{
             gridTemplateColumns: '1fr 1fr 2fr',
-            gridTemplateRows: hasSix
-              ? '1fr 1fr 1fr'
-              : '1fr 1fr',
-            gridTemplateAreas: hasSix
-              ? '"sq1 tall wide1" "sq2 tall wide2" "info tall wide3"'
-              : '"sq tall wide1" "info tall wide2"',
+            gridTemplateRows: '1fr 1fr',
+            gridTemplateAreas: '"sq tall wide1" "info tall wide2"',
           }}>
 
-          {/* Square image(s) */}
-          {series.images.filter(img => img.ratio === 'square').map((img, idx) => {
-            const copy = copies[series.images.indexOf(img)];
-            const area = hasSix ? (idx === 0 ? 'sq1' : 'sq2') : 'sq';
+          {/* Square image */}
+          {(() => {
+            const img = series.images.find(i => i.ratio === 'square');
+            const copy = copies[series.images.indexOf(img!)];
+            if (!img) return null;
             return (
-              <div key={area} className="group relative rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:z-10"
-                style={{ gridArea: area, border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div className="group relative rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:z-10"
+                style={{ gridArea: 'sq', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <div className="aspect-square">
                   <img src={img.src} alt={`${series.name} ${img.label}`} className="w-full h-full object-cover" loading="lazy" />
                 </div>
                 {copy && <AdTextOverlay copy={copy} />}
               </div>
             );
-          })}
+          })()}
 
           {/* Tall image */}
           {(() => {
@@ -283,17 +295,21 @@ function CarouselGrid({ series }: { series: DemoSeries }) {
             );
           })}
 
-          {/* Info card — fills the "info" grid area */}
-          <div className="rounded-xl p-3 md:p-4 flex flex-col justify-between"
-            style={{ gridArea: 'info', background: 'rgba(139,92,246,0.04)', border: '1px solid rgba(139,92,246,0.1)' }}>
-            <div>
-              <p className="text-[10px] font-mono text-violet-400/60 mb-2">{series.name.toUpperCase()}</p>
-              <p className="text-xs text-white/25 leading-relaxed mb-3">{series.tagline}</p>
+          {/* Info card — design-forward, English primary */}
+          <div className="rounded-xl p-4 md:p-5 flex flex-col justify-between relative overflow-hidden"
+            style={{ gridArea: 'info', background: 'rgba(139,92,246,0.04)', border: '1px solid rgba(139,92,246,0.12)' }}>
+            {/* Decorative gradient orb */}
+            <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full pointer-events-none"
+              style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)' }} />
+            <div className="relative">
+              <p className="text-[11px] font-mono tracking-[3px] text-violet-400/50 mb-3">{series.name.toUpperCase()}</p>
+              <p className="text-sm md:text-base font-bold text-white/50 leading-snug mb-2">{series.tagline}</p>
+              <p className="text-[10px] text-white/20">{series.category}</p>
             </div>
-            <div className="flex flex-wrap gap-1">
-              {['1:1', '9:16', '16:9', '2:3', '3:2'].slice(0, 3).map((s, i) => (
-                <span key={i} className="text-[8px] px-1.5 py-0.5 rounded text-white/20"
-                  style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.08)' }}>
+            <div className="relative flex items-center gap-2 mt-3 pt-3" style={{ borderTop: '1px solid rgba(139,92,246,0.08)' }}>
+              {['1:1', '9:16', '16:9'].map((s, i) => (
+                <span key={i} className="text-[9px] px-2 py-1 rounded-md text-white/30 font-medium"
+                  style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.1)' }}>
                   {s}
                 </span>
               ))}
@@ -512,9 +528,9 @@ export default function LandingPage() {
             <p className="text-xs text-violet-400/80 font-medium uppercase tracking-[4px] mb-3">{t.planLabel}</p>
             <h2 className="text-3xl md:text-4xl font-black text-white">{t.planTitle}</h2>
           </div>
-          <div className="grid md:grid-cols-2 gap-5 items-start">
+          <div className="grid md:grid-cols-3 gap-4 md:gap-5 items-start">
             {t.plans.map((plan, i) => (
-              <div key={i} className="relative rounded-2xl p-6 md:p-8 transition-all duration-300 hover:scale-[1.01]"
+              <div key={i} className="relative rounded-2xl p-6 md:p-7 transition-all duration-300 hover:scale-[1.01]"
                 style={{
                   background: plan.highlight
                     ? 'rgba(139,92,246,0.06)'
@@ -537,8 +553,8 @@ export default function LandingPage() {
                 )}
 
                 {/* Header */}
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-4">
+                <div className="mb-5">
+                  <div className="flex items-center gap-2 mb-3">
                     {plan.highlight
                       ? <Zap className="w-5 h-5 text-violet-400" />
                       : <div className="w-5 h-5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
@@ -551,9 +567,13 @@ export default function LandingPage() {
                     )}
                   </div>
                   <div className="flex items-baseline gap-1 mb-2">
-                    <span className="text-4xl md:text-5xl font-black" style={{ color: plan.highlight ? '#c4b5fd' : 'rgba(255,255,255,0.8)' }}>
-                      {plan.price}
-                    </span>
+                    {plan.price ? (
+                      <span className="text-4xl md:text-5xl font-black" style={{ color: plan.highlight ? '#c4b5fd' : 'rgba(255,255,255,0.8)' }}>
+                        {plan.price}
+                      </span>
+                    ) : (
+                      <span className="text-2xl md:text-3xl font-black text-white/20">STAY TUNED</span>
+                    )}
                     <span className="text-sm text-white/20">{plan.period}</span>
                   </div>
                   <p className="text-sm text-white/25">{plan.desc}</p>
