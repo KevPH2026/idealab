@@ -34,7 +34,7 @@ const T = {
         price: '¥0',
         period: '无需注册',
         desc: '试试看，直接生成',
-        features: ['1次AI生成', '8种广告场景', '品牌DNA解码'],
+        features: ['AI生成1次', '品牌DNA解码', '全平台尺寸'],
         cta: '立即试用',
         highlight: false,
       },
@@ -44,7 +44,7 @@ const T = {
         price: '¥0',
         period: '注册免费',
         desc: '注册并认证，解锁更多',
-        features: ['100次AI生成', '8种广告场景', '全平台尺寸', '品牌DNA解码', '一键下载全部素材'],
+        features: ['AI生成100次', '品牌DNA解码', '全平台尺寸', '一键下载全部素材'],
         cta: '免费注册',
         highlight: true,
       },
@@ -55,8 +55,8 @@ const T = {
         period: 'Coming Soon',
         desc: '专业卖家首选，无限素材产出',
         features: [
-          '无限AI生成', '8种广告场景', '全平台尺寸', '品牌DNA解码',
-          '批量导出 & 水印', '多品牌管理', 'A/B测试变体', '优先生成速度', '专属客服支持',
+          '无限AI生成', '品牌DNA解码', '全平台尺寸',
+          '批量导出 & 水印', '多品牌管理', '优先生成速度',
         ],
         cta: '加入候补',
         highlight: false,
@@ -91,7 +91,7 @@ const T = {
         price: '$0',
         period: 'No account needed',
         desc: 'Try it now, generate instantly',
-        features: ['1 AI generation', '8 ad scenes', 'Brand DNA decode'],
+        features: ['1 AI generation', 'Brand DNA decode', 'All platform sizes'],
         cta: 'Try Now',
         highlight: false,
       },
@@ -101,7 +101,7 @@ const T = {
         price: '$0',
         period: 'Free with account',
         desc: 'Sign up & verify to unlock more',
-        features: ['100 AI generations', '8 ad scenes', 'All platform sizes', 'Brand DNA decode', 'One-click download all'],
+        features: ['100 AI generations', 'Brand DNA decode', 'All platform sizes', 'One-click download all'],
         cta: 'Sign Up Free',
         highlight: true,
       },
@@ -112,8 +112,8 @@ const T = {
         period: 'Coming Soon',
         desc: 'For serious sellers, unlimited creatives',
         features: [
-          'Unlimited AI generations', '8 ad scenes', 'All platform sizes', 'Brand DNA decode',
-          'Batch export & watermark', 'Multi-brand management', 'A/B test variants', 'Priority generation speed', 'Dedicated support',
+          'Unlimited AI generations', 'Brand DNA decode', 'All platform sizes',
+          'Batch export & watermark', 'Multi-brand management', 'Priority generation speed',
         ],
         cta: 'Join Waitlist',
         highlight: false,
@@ -523,14 +523,14 @@ export default function LandingPage() {
 
       {/* ─── Pricing ─── */}
       <section id="pricing" className="py-24 px-6" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
             <p className="text-xs text-violet-400/80 font-medium uppercase tracking-[4px] mb-3">{t.planLabel}</p>
             <h2 className="text-3xl md:text-4xl font-black text-white">{t.planTitle}</h2>
           </div>
-          <div className="grid md:grid-cols-3 gap-4 md:gap-5 items-start">
+          <div className="grid md:grid-cols-3 gap-5 items-stretch">
             {t.plans.map((plan, i) => (
-              <div key={i} className="relative rounded-2xl p-6 md:p-7 transition-all duration-300 hover:scale-[1.01]"
+              <div key={i} className="relative rounded-2xl p-7 flex flex-col transition-all duration-300 hover:scale-[1.01]"
                 style={{
                   background: plan.highlight
                     ? 'rgba(139,92,246,0.06)'
@@ -553,8 +553,8 @@ export default function LandingPage() {
                 )}
 
                 {/* Header */}
-                <div className="mb-5">
-                  <div className="flex items-center gap-2 mb-3">
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-4">
                     {plan.highlight
                       ? <Zap className="w-5 h-5 text-violet-400" />
                       : <div className="w-5 h-5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
@@ -566,7 +566,7 @@ export default function LandingPage() {
                       </span>
                     )}
                   </div>
-                  <div className="flex items-baseline gap-1 mb-2">
+                  <div className="flex items-baseline gap-1.5 mb-2">
                     {plan.price ? (
                       <span className="text-4xl md:text-5xl font-black" style={{ color: plan.highlight ? '#c4b5fd' : 'rgba(255,255,255,0.8)' }}>
                         {plan.price}
@@ -579,8 +579,11 @@ export default function LandingPage() {
                   <p className="text-sm text-white/25">{plan.desc}</p>
                 </div>
 
+                {/* Divider */}
+                <div className="mb-6" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }} />
+
                 {/* Features */}
-                <ul className="space-y-3 mb-8">
+                <ul className="space-y-3 mb-8 flex-1">
                   {plan.features.map((f, fi) => (
                     <li key={fi} className="flex items-start gap-2.5 text-sm" style={{ color: plan.highlight ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.3)' }}>
                       <Check className={`w-4 h-4 mt-0.5 shrink-0 ${plan.highlight ? 'text-violet-400' : 'text-white/15'}`} />
@@ -589,14 +592,14 @@ export default function LandingPage() {
                   ))}
                 </ul>
 
-                {/* CTA */}
+                {/* CTA - always at bottom */}
                 <a href="/get" className="group inline-flex items-center justify-center gap-2 w-full text-sm font-bold transition-all"
                   style={{
                     background: plan.highlight
                       ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)'
                       : 'rgba(255,255,255,0.05)',
                     color: plan.highlight ? 'white' : 'rgba(255,255,255,0.4)',
-                    padding: '12px 24px',
+                    padding: '13px 24px',
                     borderRadius: '12px',
                     boxShadow: plan.highlight ? '0 0 20px rgba(139,92,246,0.25)' : 'none',
                     border: plan.highlight ? 'none' : '1px solid rgba(255,255,255,0.08)',
