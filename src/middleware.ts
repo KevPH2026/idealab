@@ -19,13 +19,14 @@ export function middleware(req: NextRequest) {
       return NextResponse.rewrite(url);
     }
 
-    // Only allow adforge, admin, api, landing, _next
+    // Only allow specific paths, everything else → landing
     const allowed =
       url.pathname.startsWith('/adforge') ||
       url.pathname.startsWith('/api/') ||
       url.pathname.startsWith('/admin') ||
       url.pathname.startsWith('/landing') ||
-      url.pathname.startsWith('/_next');
+      url.pathname.startsWith('/_next') ||
+      url.pathname.startsWith('/demo/');
     if (!allowed) {
       url.pathname = '/landing';
       return NextResponse.rewrite(url);
