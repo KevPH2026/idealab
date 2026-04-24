@@ -192,6 +192,32 @@ const DEMO_SERIES: DemoSeries[] = [
       { src: '/demo/sport_04.webp', label: 'FB Ad 16:9', ratio: 'wide' },
     ],
   },
+  {
+    name: 'NexBot',
+    category: '智能机器人',
+    emoji: '🤖',
+    tagline: 'Smart Living · Your AI Home Companion',
+    scenes: 'IG Feed × Story × FB Ad × TikTok',
+    images: [
+      { src: '/demo/robot_01.webp', label: 'IG Feed 1:1', ratio: 'square' },
+      { src: '/demo/robot_02.webp', label: 'Story 9:16', ratio: 'tall' },
+      { src: '/demo/robot_03.webp', label: 'FB Ad 16:9', ratio: 'wide' },
+      { src: '/demo/robot_04.webp', label: 'FB Ad 16:9', ratio: 'wide' },
+    ],
+  },
+  {
+    name: 'RingFit',
+    category: '智能戒指',
+    emoji: '💍',
+    tagline: 'Wearable Intelligence · Health on Your Finger',
+    scenes: 'IG Feed × Story × FB Ad × TikTok',
+    images: [
+      { src: '/demo/ring_01.webp', label: 'IG Feed 1:1', ratio: 'square' },
+      { src: '/demo/ring_02.webp', label: 'Story 9:16', ratio: 'tall' },
+      { src: '/demo/ring_03.webp', label: 'FB Ad 16:9', ratio: 'wide' },
+      { src: '/demo/ring_04.webp', label: 'FB Ad 16:9', ratio: 'wide' },
+    ],
+  },
 ];
 
 // Ad copy overlay — all English, high-converting marketing copy
@@ -219,6 +245,18 @@ const AD_COPY: Record<string, { headline: string; sub: string; cta: string }[]> 
     { headline: 'Break Your Limits', sub: 'Energy-return sole tech', cta: 'GET YOURS →' },
     { headline: 'From Streets to Tracks', sub: 'StridePro X · Limited Edition', cta: 'PRE-ORDER →' },
     { headline: 'Unleash Your Speed', sub: 'Carbon fiber plate · 3% faster', cta: 'SHOP NOW →' },
+  ],
+  NexBot: [
+    { headline: 'Your Home, Reimagined', sub: 'Voice-controlled smart living', cta: 'MEET NEXBOT →' },
+    { headline: 'Welcome Home', sub: 'AI that learns your routine', cta: 'EXPLORE →' },
+    { headline: 'One Voice, Full Control', sub: 'Lights · Music · Security · Climate', cta: 'GET YOURS →' },
+    { headline: 'Smarter Every Day', sub: 'OTA updates · Always improving', cta: 'SHOP NOW →' },
+  ],
+  RingFit: [
+    { headline: 'Health Meets Style', sub: 'Advanced biometrics on your finger', cta: 'DISCOVER →' },
+    { headline: 'Sleep Smarter', sub: 'Track every sleep stage', cta: 'LEARN MORE →' },
+    { headline: 'Your Body, Quantified', sub: 'Heart rate · SpO2 · Stress · Steps', cta: 'GET YOURS →' },
+    { headline: ' Invisible. Powerful.', sub: '3-day battery · IP68 waterproof', cta: 'SHOP NOW →' },
   ],
 };
 
