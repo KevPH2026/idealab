@@ -8,7 +8,7 @@ type Lang = 'zh' | 'en';
 const T = {
   zh: {
     badge: 'DTC广告素材 · 100倍效率',
-    heroLine1: '你的广告素材，',
+    heroLine1: '你的广告素材',
     heroLine2: '我们包了',
     heroSub: '上传参考图。输入卖点。30秒获得多平台广告素材。',
     heroNote: '不是贴logo——是品牌DNA注入。',
@@ -176,33 +176,33 @@ const DEMO_SERIES: DemoSeries[] = [
   },
 ];
 
-// Ad copy overlay data for each series
+// Ad copy overlay — all English, high-converting marketing copy
 const AD_COPY: Record<string, { headline: string; sub: string; cta: string }[]> = {
   SoundWave: [
-    { headline: '静界', sub: 'Active Noise Cancelling', cta: 'Shop Now' },
-    { headline: '沉浸30小时', sub: '30H Battery Life', cta: '了解更多' },
-    { headline: '你的随身音乐厅', sub: 'Hi-Res Audio', cta: '立即购买' },
-    { headline: '降噪新境界', sub: 'SoundWave Pro', cta: 'Shop Now' },
-    { headline: '专注力倍增', sub: 'Focus Mode', cta: '了解更多' },
-    { headline: '声临其境', sub: 'Spatial Audio', cta: '立即购买' },
+    { headline: 'Silence The Noise', sub: 'Up to 98% noise cancellation', cta: 'GET YOURS →' },
+    { headline: '30 Hours of Bliss', sub: 'All-day battery. Zero downtime.', cta: 'SHOP NOW →' },
+    { headline: 'Hear What You\'ve Been Missing', sub: 'Hi-Res Audio · Spatial Sound', cta: 'TRY FREE →' },
+    { headline: 'Your Personal Concert Hall', sub: '50mm drivers · Deep bass', cta: 'GET YOURS →' },
+    { headline: 'Focus. Create. Repeat.', sub: 'AI-powered Focus Mode', cta: 'SHOP NOW →' },
+    { headline: 'Sound That Moves You', sub: '360° Spatial Audio', cta: 'TRY FREE →' },
   ],
   AuraGlow: [
-    { headline: '发光肌', sub: 'Glow From Within', cta: 'Shop Now' },
-    { headline: '7天焕亮', sub: 'Clinical Results', cta: '了解更多' },
-    { headline: '天然光泽', sub: 'AuraGlow Serum', cta: '立即购买' },
-    { headline: '水润一整天', sub: '72H Hydration', cta: 'Shop Now' },
+    { headline: 'Glow Different', sub: 'Visible results in 7 days', cta: 'SHOP NOW →' },
+    { headline: 'Your Skin But Better', sub: 'Clinical-grade glow serum', cta: 'TRY FREE →' },
+    { headline: 'No Filter Needed', sub: '72-hour hydration boost', cta: 'GET YOURS →' },
+    { headline: 'Wake Up Glowing', sub: 'Overnight radiance reset', cta: 'SHOP NOW →' },
   ],
   BeanCraft: [
-    { headline: '每一杯都是仪式', sub: 'Specialty Roasted', cta: 'Shop Now' },
-    { headline: '从产地到杯中', sub: 'Single Origin', cta: '了解更多' },
-    { headline: '手冲的艺术', sub: 'BeanCraft Co.', cta: '立即购买' },
-    { headline: '早安好味', sub: 'Morning Ritual', cta: 'Shop Now' },
+    { headline: 'Every Cup Tells a Story', sub: 'Single-origin specialty roast', cta: 'ORDER NOW →' },
+    { headline: 'From Farm to Your Cup', sub: 'Ethically sourced · Freshly roasted', cta: 'TRY TODAY →' },
+    { headline: 'Ritual, Not Routine', sub: 'Hand-roasted in small batches', cta: 'SUBSCRIBE →' },
+    { headline: 'Mornings Worth Waking Up For', sub: 'Award-winning blend', cta: 'ORDER NOW →' },
   ],
   StridePro: [
-    { headline: '轻量起飞', sub: 'Ultra Light 180g', cta: 'Shop Now' },
-    { headline: '突破每一步', sub: 'Cloud Cushion', cta: '了解更多' },
-    { headline: '街头到跑道', sub: 'StridePro X', cta: '立即购买' },
-    { headline: '释放速度', sub: 'Speed Series', cta: 'Shop Now' },
+    { headline: 'Lighter Than Air', sub: 'Only 180g · Cloud-like cushion', cta: 'SHOP NOW →' },
+    { headline: 'Break Your Limits', sub: 'Energy-return sole tech', cta: 'GET YOURS →' },
+    { headline: 'From Streets to Tracks', sub: 'StridePro X · Limited Edition', cta: 'PRE-ORDER →' },
+    { headline: 'Unleash Your Speed', sub: 'Carbon fiber plate · 3% faster', cta: 'SHOP NOW →' },
   ],
 };
 
