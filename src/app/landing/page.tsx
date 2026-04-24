@@ -114,6 +114,8 @@ interface DemoSeries {
   name: string;
   category: string;
   emoji: string;
+  tagline: string;
+  scenes: string;
   images: DemoImage[];
 }
 
@@ -122,6 +124,8 @@ const DEMO_SERIES: DemoSeries[] = [
     name: 'SoundWave',
     category: '降噪耳机',
     emoji: '🎧',
+    tagline: '沉浸式降噪 · 随身音乐厅',
+    scenes: 'IG Feed × Story × FB Ad × TikTok',
     images: [
       { src: '/demo/tech_01.webp', label: 'IG Feed 1:1', ratio: 'square' },
       { src: '/demo/tech_02.webp', label: 'Story 9:16', ratio: 'tall' },
@@ -135,6 +139,8 @@ const DEMO_SERIES: DemoSeries[] = [
     name: 'AuraGlow',
     category: '美妆护肤',
     emoji: '🧴',
+    tagline: '天然发光肌 · 一抹即现',
+    scenes: 'IG Feed × Story × FB Ad × TikTok',
     images: [
       { src: '/demo/beauty_01.webp', label: 'IG Feed 1:1', ratio: 'square' },
       { src: '/demo/beauty_03.webp', label: 'Story 9:16', ratio: 'tall' },
@@ -146,6 +152,8 @@ const DEMO_SERIES: DemoSeries[] = [
     name: 'BeanCraft',
     category: '精品咖啡',
     emoji: '☕',
+    tagline: '精品手冲 · 每一杯都是仪式',
+    scenes: 'IG Feed × Story × FB Ad × TikTok',
     images: [
       { src: '/demo/coffee_01.webp', label: 'IG Feed 1:1', ratio: 'square' },
       { src: '/demo/coffee_03.webp', label: 'Story 9:16', ratio: 'tall' },
@@ -157,6 +165,8 @@ const DEMO_SERIES: DemoSeries[] = [
     name: 'StridePro',
     category: '运动鞋',
     emoji: '👟',
+    tagline: '轻量缓震 · 突破每一步',
+    scenes: 'IG Feed × Story × FB Ad × TikTok',
     images: [
       { src: '/demo/sport_01.webp', label: 'IG Feed 1:1', ratio: 'square' },
       { src: '/demo/sport_03.webp', label: 'Story 9:16', ratio: 'tall' },
@@ -166,12 +176,45 @@ const DEMO_SERIES: DemoSeries[] = [
   },
 ];
 
+// Ad copy overlay data for each series
+const AD_COPY: Record<string, { headline: string; sub: string; cta: string }[]> = {
+  SoundWave: [
+    { headline: '静界', sub: 'Active Noise Cancelling', cta: 'Shop Now' },
+    { headline: '沉浸30小时', sub: '30H Battery Life', cta: '了解更多' },
+    { headline: '你的随身音乐厅', sub: 'Hi-Res Audio', cta: '立即购买' },
+    { headline: '降噪新境界', sub: 'SoundWave Pro', cta: 'Shop Now' },
+    { headline: '专注力倍增', sub: 'Focus Mode', cta: '了解更多' },
+    { headline: '声临其境', sub: 'Spatial Audio', cta: '立即购买' },
+  ],
+  AuraGlow: [
+    { headline: '发光肌', sub: 'Glow From Within', cta: 'Shop Now' },
+    { headline: '7天焕亮', sub: 'Clinical Results', cta: '了解更多' },
+    { headline: '天然光泽', sub: 'AuraGlow Serum', cta: '立即购买' },
+    { headline: '水润一整天', sub: '72H Hydration', cta: 'Shop Now' },
+  ],
+  BeanCraft: [
+    { headline: '每一杯都是仪式', sub: 'Specialty Roasted', cta: 'Shop Now' },
+    { headline: '从产地到杯中', sub: 'Single Origin', cta: '了解更多' },
+    { headline: '手冲的艺术', sub: 'BeanCraft Co.', cta: '立即购买' },
+    { headline: '早安好味', sub: 'Morning Ritual', cta: 'Shop Now' },
+  ],
+  StridePro: [
+    { headline: '轻量起飞', sub: 'Ultra Light 180g', cta: 'Shop Now' },
+    { headline: '突破每一步', sub: 'Cloud Cushion', cta: '了解更多' },
+    { headline: '街头到跑道', sub: 'StridePro X', cta: '立即购买' },
+    { headline: '释放速度', sub: 'Speed Series', cta: 'Shop Now' },
+  ],
+};
+
 function CarouselGrid({ series }: { series: DemoSeries }) {
+  const copies = AD_COPY[series.name] || [];
+
   return (
     <div className="rounded-2xl p-[1px]"
       style={{ background: 'linear-gradient(145deg, rgba(139,92,246,0.25), rgba(255,255,255,0.04), rgba(6,182,212,0.15))' }}>
       <div className="rounded-2xl p-4 md:p-5"
         style={{ background: 'rgba(10,10,15,0.95)', backdropFilter: 'blur(20px)' }}>
+
         {/* Header */}
         <div className="flex items-center gap-3 mb-3">
           <div className="w-2 h-2 rounded-full bg-violet-500"
@@ -180,38 +223,112 @@ function CarouselGrid({ series }: { series: DemoSeries }) {
           <span className="text-sm text-white/40 font-semibold">{series.category}</span>
           <span className="text-[10px] text-white/15 font-mono ml-auto">{series.name}</span>
         </div>
-        {/* Grid — always 4-col masonry */}
-        <div className="grid grid-cols-4 gap-1.5 md:gap-2">
-          {series.images.map((img, i) => {
-            let cellClass = 'group relative rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:z-10';
-            let innerClass = '';
 
-            if (img.ratio === 'tall') {
-              cellClass += ' row-span-2';
-              innerClass = 'aspect-[9/16] h-full';
-            } else if (img.ratio === 'wide') {
-              cellClass += ' col-span-2';
-              innerClass = 'aspect-video';
-            } else {
-              innerClass = 'aspect-square';
-            }
+        {/* Layout: left info panel + right image grid */}
+        <div className="flex gap-3 md:gap-4">
 
-            return (
-              <div key={i} className={cellClass}
-                style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div className={innerClass}>
-                  <img src={img.src} alt={`${series.name} ${img.label}`}
-                    className="w-full h-full object-cover" loading="lazy" />
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all flex items-end p-2">
-                  <span className="text-[8px] font-bold text-white/80 px-1.5 py-0.5 rounded"
-                    style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
-                    {img.label}
-                  </span>
-                </div>
+          {/* Left — Brand info panel */}
+          <div className="hidden md:flex flex-col justify-between w-[200px] shrink-0 rounded-xl p-4"
+            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div>
+              <div className="text-3xl mb-3">{series.emoji}</div>
+              <h3 className="text-lg font-black text-white/90 mb-1">{series.name}</h3>
+              <p className="text-xs text-white/30 mb-4 leading-relaxed">{series.tagline}</p>
+              <div className="space-y-2">
+                {['IG Feed', 'Story', 'FB Ad', 'TikTok'].map((p, pi) => (
+                  <div key={pi} className="flex items-center gap-2">
+                    <div className="w-1 h-1 rounded-full bg-violet-500/60" />
+                    <span className="text-[10px] text-white/20 font-medium">{p}</span>
+                  </div>
+                ))}
               </div>
-            );
-          })}
+            </div>
+            <div className="mt-4 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+              <p className="text-[10px] text-white/15 font-mono mb-2">COVERED PLATFORMS</p>
+              <div className="flex flex-wrap gap-1">
+                {series.scenes.split(' × ').map((s, si) => (
+                  <span key={si} className="text-[9px] px-1.5 py-0.5 rounded text-white/25"
+                    style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.12)' }}>
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right — Image grid with text overlay */}
+          <div className="flex-1 grid grid-cols-3 gap-1.5 md:gap-2">
+            {series.images.map((img, i) => {
+              const copy = copies[i];
+              let cellClass = 'group relative rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:z-10';
+              let innerClass = '';
+
+              if (img.ratio === 'tall') {
+                cellClass += ' row-span-2';
+                innerClass = 'aspect-[9/16] h-full';
+              } else if (img.ratio === 'wide') {
+                cellClass += ' col-span-2';
+                innerClass = 'aspect-video';
+              } else {
+                innerClass = 'aspect-square';
+              }
+
+              return (
+                <div key={i} className={cellClass}
+                  style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div className={innerClass}>
+                    <img src={img.src} alt={`${series.name} ${img.label}`}
+                      className="w-full h-full object-cover" loading="lazy" />
+                  </div>
+
+                  {/* Text overlay — always visible, with stagger animation */}
+                  {copy && (
+                    <div className="absolute inset-0 flex flex-col justify-end p-3 md:p-4"
+                      style={{
+                        background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 40%, transparent 60%)',
+                      }}>
+                      <div className="space-y-1 md:space-y-1.5">
+                        <p className="text-white/90 font-black text-sm md:text-base leading-tight animate-fade-in-up"
+                          style={{
+                            animationDelay: `${i * 200 + 300}ms`,
+                            animationFillMode: 'both',
+                            textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                          }}>
+                          {copy.headline}
+                        </p>
+                        <p className="text-white/50 text-[9px] md:text-[10px] font-medium animate-fade-in-up"
+                          style={{
+                            animationDelay: `${i * 200 + 500}ms`,
+                            animationFillMode: 'both',
+                            textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+                          }}>
+                          {copy.sub}
+                        </p>
+                        <span className="inline-block mt-1 px-2 py-0.5 rounded text-[8px] md:text-[9px] font-bold text-white/80 animate-fade-in-up"
+                          style={{
+                            animationDelay: `${i * 200 + 700}ms`,
+                            animationFillMode: 'both',
+                            background: 'rgba(139,92,246,0.4)',
+                            backdropFilter: 'blur(4px)',
+                            border: '1px solid rgba(139,92,246,0.3)',
+                          }}>
+                          {copy.cta}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Platform label on hover */}
+                  <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[7px] font-bold text-white/70 px-1.5 py-0.5 rounded"
+                      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+                      {img.label}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
