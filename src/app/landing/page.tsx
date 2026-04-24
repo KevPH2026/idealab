@@ -208,6 +208,7 @@ const AD_COPY: Record<string, { headline: string; sub: string; cta: string }[]> 
 
 function CarouselGrid({ series }: { series: DemoSeries }) {
   const copies = AD_COPY[series.name] || [];
+  const hasSix = series.images.length === 6;
 
   return (
     <div className="rounded-2xl p-[1px]"
@@ -224,112 +225,110 @@ function CarouselGrid({ series }: { series: DemoSeries }) {
           <span className="text-[10px] text-white/15 font-mono ml-auto">{series.name}</span>
         </div>
 
-        {/* Layout: left info panel + right image grid */}
-        <div className="flex gap-3 md:gap-4">
+        {/* Bento Grid — explicit areas, zero gaps */}
+        <div className="grid gap-1.5 md:gap-2"
+          style={{
+            gridTemplateColumns: '1fr 1fr 2fr',
+            gridTemplateRows: hasSix
+              ? '1fr 1fr 1fr'
+              : '1fr 1fr',
+            gridTemplateAreas: hasSix
+              ? '"sq1 tall wide1" "sq2 tall wide2" "info tall wide3"'
+              : '"sq tall wide1" "info tall wide2"',
+          }}>
 
-          {/* Left — Brand info panel */}
-          <div className="hidden md:flex flex-col justify-between w-[200px] shrink-0 rounded-xl p-4"
-            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div>
-              <div className="text-3xl mb-3">{series.emoji}</div>
-              <h3 className="text-lg font-black text-white/90 mb-1">{series.name}</h3>
-              <p className="text-xs text-white/30 mb-4 leading-relaxed">{series.tagline}</p>
-              <div className="space-y-2">
-                {['IG Feed', 'Story', 'FB Ad', 'TikTok'].map((p, pi) => (
-                  <div key={pi} className="flex items-center gap-2">
-                    <div className="w-1 h-1 rounded-full bg-violet-500/60" />
-                    <span className="text-[10px] text-white/20 font-medium">{p}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="mt-4 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              <p className="text-[10px] text-white/15 font-mono mb-2">COVERED PLATFORMS</p>
-              <div className="flex flex-wrap gap-1">
-                {series.scenes.split(' × ').map((s, si) => (
-                  <span key={si} className="text-[9px] px-1.5 py-0.5 rounded text-white/25"
-                    style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.12)' }}>
-                    {s}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Right — Image grid with text overlay */}
-          <div className="flex-1 grid grid-cols-3 gap-1.5 md:gap-2">
-            {series.images.map((img, i) => {
-              const copy = copies[i];
-              let cellClass = 'group relative rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:z-10';
-              let innerClass = '';
-
-              if (img.ratio === 'tall') {
-                cellClass += ' row-span-2';
-                innerClass = 'aspect-[9/16] h-full';
-              } else if (img.ratio === 'wide') {
-                cellClass += ' col-span-2';
-                innerClass = 'aspect-video';
-              } else {
-                innerClass = 'aspect-square';
-              }
-
-              return (
-                <div key={i} className={cellClass}
-                  style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div className={innerClass}>
-                    <img src={img.src} alt={`${series.name} ${img.label}`}
-                      className="w-full h-full object-cover" loading="lazy" />
-                  </div>
-
-                  {/* Text overlay — always visible, with stagger animation */}
-                  {copy && (
-                    <div className="absolute inset-0 flex flex-col justify-end p-3 md:p-4"
-                      style={{
-                        background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 40%, transparent 60%)',
-                      }}>
-                      <div className="space-y-1 md:space-y-1.5">
-                        <p className="text-white/90 font-black text-sm md:text-base leading-tight animate-fade-in-up"
-                          style={{
-                            animationDelay: `${i * 200 + 300}ms`,
-                            animationFillMode: 'both',
-                            textShadow: '0 2px 8px rgba(0,0,0,0.5)',
-                          }}>
-                          {copy.headline}
-                        </p>
-                        <p className="text-white/50 text-[9px] md:text-[10px] font-medium animate-fade-in-up"
-                          style={{
-                            animationDelay: `${i * 200 + 500}ms`,
-                            animationFillMode: 'both',
-                            textShadow: '0 1px 4px rgba(0,0,0,0.5)',
-                          }}>
-                          {copy.sub}
-                        </p>
-                        <span className="inline-block mt-1 px-2 py-0.5 rounded text-[8px] md:text-[9px] font-bold text-white/80 animate-fade-in-up"
-                          style={{
-                            animationDelay: `${i * 200 + 700}ms`,
-                            animationFillMode: 'both',
-                            background: 'rgba(139,92,246,0.4)',
-                            backdropFilter: 'blur(4px)',
-                            border: '1px solid rgba(139,92,246,0.3)',
-                          }}>
-                          {copy.cta}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Platform label on hover */}
-                  <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[7px] font-bold text-white/70 px-1.5 py-0.5 rounded"
-                      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
-                      {img.label}
-                    </span>
-                  </div>
+          {/* Square image(s) */}
+          {series.images.filter(img => img.ratio === 'square').map((img, idx) => {
+            const copy = copies[series.images.indexOf(img)];
+            const area = hasSix ? (idx === 0 ? 'sq1' : 'sq2') : 'sq';
+            return (
+              <div key={area} className="group relative rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:z-10"
+                style={{ gridArea: area, border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="aspect-square">
+                  <img src={img.src} alt={`${series.name} ${img.label}`} className="w-full h-full object-cover" loading="lazy" />
                 </div>
-              );
-            })}
+                {copy && <AdTextOverlay copy={copy} />}
+              </div>
+            );
+          })}
+
+          {/* Tall image */}
+          {(() => {
+            const img = series.images.find(i => i.ratio === 'tall');
+            const copy = copies[series.images.indexOf(img!)];
+            if (!img) return null;
+            return (
+              <div className="group relative rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:z-10"
+                style={{ gridArea: 'tall', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="aspect-[9/16] h-full">
+                  <img src={img.src} alt={`${series.name} ${img.label}`} className="w-full h-full object-cover" loading="lazy" />
+                </div>
+                {copy && <AdTextOverlay copy={copy} />}
+              </div>
+            );
+          })()}
+
+          {/* Wide images */}
+          {series.images.filter(img => img.ratio === 'wide').map((img, idx) => {
+            const area = `wide${idx + 1}`;
+            const copy = copies[series.images.indexOf(img)];
+            return (
+              <div key={area} className="group relative rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:z-10"
+                style={{ gridArea: area, border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="aspect-video">
+                  <img src={img.src} alt={`${series.name} ${img.label}`} className="w-full h-full object-cover" loading="lazy" />
+                </div>
+                {copy && <AdTextOverlay copy={copy} />}
+              </div>
+            );
+          })}
+
+          {/* Info card — fills the "info" grid area */}
+          <div className="rounded-xl p-3 md:p-4 flex flex-col justify-between"
+            style={{ gridArea: 'info', background: 'rgba(139,92,246,0.04)', border: '1px solid rgba(139,92,246,0.1)' }}>
+            <div>
+              <p className="text-[10px] font-mono text-violet-400/60 mb-2">{series.name.toUpperCase()}</p>
+              <p className="text-xs text-white/25 leading-relaxed mb-3">{series.tagline}</p>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {['1:1', '9:16', '16:9', '2:3', '3:2'].slice(0, 3).map((s, i) => (
+                <span key={i} className="text-[8px] px-1.5 py-0.5 rounded text-white/20"
+                  style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.08)' }}>
+                  {s}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* Reusable ad text overlay component */
+function AdTextOverlay({ copy }: { copy: { headline: string; sub: string; cta: string } }) {
+  return (
+    <div className="absolute inset-0 flex flex-col justify-end p-3 md:p-4"
+      style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.15) 45%, transparent 65%)' }}>
+      <div className="space-y-1 md:space-y-1.5">
+        <p className="text-white/90 font-black text-sm md:text-base leading-tight animate-fade-in-up"
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)', animationDelay: '300ms', animationFillMode: 'both' }}>
+          {copy.headline}
+        </p>
+        <p className="text-white/50 text-[9px] md:text-[10px] font-medium animate-fade-in-up"
+          style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)', animationDelay: '500ms', animationFillMode: 'both' }}>
+          {copy.sub}
+        </p>
+        <span className="inline-block mt-1 px-2 py-0.5 rounded text-[8px] md:text-[9px] font-bold text-white/80 animate-fade-in-up"
+          style={{
+            animationDelay: '700ms',
+            animationFillMode: 'both',
+            background: 'rgba(139,92,246,0.45)',
+            backdropFilter: 'blur(4px)',
+            border: '1px solid rgba(139,92,246,0.35)',
+          }}>
+          {copy.cta}
+        </span>
       </div>
     </div>
   );
