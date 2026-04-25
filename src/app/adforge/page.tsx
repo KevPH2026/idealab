@@ -39,6 +39,7 @@ export default function AdForgePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [images, setImages] = useState<GeneratedImage[]>([]);
+  const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null);
 
   const [dna, setDna] = useState<BrandDNA | null>(null);
   const [dnaLoading, setDnaLoading] = useState(false);
@@ -185,6 +186,48 @@ export default function AdForgePage() {
     a.href = url;
     a.download = `${brandName}-${i + 1}.png`;
     a.click();
+  };
+
+  const downloadAll = () => {
+    images.forEach((img, i) => {
+      setTimeout(() => downloadImage(img.url, i), i * 300);
+    });
+  };
+
+  const regenerateOne = async (index: number) => {
+    setRegeneratingIndex(index);
+    const brandColors = dna?.colors?.palette?.slice(0, 3) || [];
+    const styleContext = dna ? [
+      `Brand style: ${dna.style.mood}, ${dna.style.tone}, ${dna.style.aesthetic}`,
+      `Photography style: ${dna.style.photography}`,
+      `Keywords: ${dna.keywords?.join(', ')}`,
+      `Brand DNA summary: ${dna.description}`,
+    ].join('. ') : '';
+
+    try {
+      const res = await fetch('/api/adforge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brandName: brandName.trim(),
+          brandColors,
+          sellingPoint: sellingPoint.trim(),
+          targetCountry,
+          styleContext,
+          referenceImage: previewSrc || undefined,
+          sceneIndex: index,
+        }),
+      });
+      if (!res.ok) throw new Error('生成失败');
+      const data = await res.json();
+      if (data.image) {
+        setImages(prev => prev.map((img, i) => i === index ? data.image : img));
+      }
+    } catch (err: any) {
+      setError(`第${index + 1}张重生成失败: ${err.message}`);
+    } finally {
+      setRegeneratingIndex(null);
+    }
   };
 
   const reset = () => { setStep(1); setImages([]); setError(''); };
@@ -492,6 +535,11 @@ export default function AdForgePage() {
                   </div>
                   {!loading && (
                     <div className="flex gap-2">
+                      <button onClick={downloadAll}
+                        className="px-3.5 h-9 rounded-lg text-sm text-white/35 hover:text-white/60 flex items-center gap-1.5 transition-all"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <Download className="w-3.5 h-3.5" /> 全部下载
+                      </button>
                       <button onClick={restartFromStep2}
                         className="px-3.5 h-9 rounded-lg text-sm text-white/35 hover:text-white/60 flex items-center gap-1.5 transition-all"
                         style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -535,15 +583,26 @@ export default function AdForgePage() {
                       style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={img.url} alt={`${brandName} 广告素材 ${i+1}`} className="w-full aspect-square object-cover" />
+                      {regeneratingIndex === i && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <Loader2 className="w-8 h-8 text-violet-400 animate-spin" />
+                        </div>
+                      )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-3.5">
                         <div className="flex items-center gap-1.5 mb-2.5">
                           <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/10 backdrop-blur text-white/70">{img.platform}</span>
                           <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/10 backdrop-blur text-white/70">{img.scene}</span>
                         </div>
-                        <button onClick={() => downloadImage(img.url, i)}
-                          className="flex items-center justify-center gap-1.5 w-full py-2 rounded-lg bg-white/15 hover:bg-white/25 backdrop-blur text-white text-xs font-medium transition-all">
-                          <Download className="w-3.5 h-3.5" /> 下载
-                        </button>
+                        <div className="flex gap-1.5">
+                          <button onClick={() => regenerateOne(i)} disabled={regeneratingIndex !== null}
+                            className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-white/15 hover:bg-white/25 backdrop-blur text-white text-xs font-medium transition-all disabled:opacity-50">
+                            <RotateCcw className="w-3.5 h-3.5" /> 换一版
+                          </button>
+                          <button onClick={() => downloadImage(img.url, i)}
+                            className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-white/15 hover:bg-white/25 backdrop-blur text-white text-xs font-medium transition-all">
+                            <Download className="w-3.5 h-3.5" /> 下载
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
