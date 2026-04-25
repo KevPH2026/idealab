@@ -54,20 +54,31 @@ export async function createUser(params: {
   name: string;
   email: string;
   passwordHash: string;
+  brandUrl?: string;
+  phone?: string;
 }): Promise<NotionUser> {
   const existing = await findUserByEmail(params.email);
   if (existing) throw new Error("USER_EXISTS");
 
+  const properties: any = {
+    Name: { title: [{ text: { content: params.name } }] },
+    Email: { email: params.email },
+    SessionID: { rich_text: [{ text: { content: params.passwordHash } }] },
+    QuotasRemaining: { number: 100 },
+    TurnsUsed: { number: 0 },
+    CreatedAt: { date: { start: new Date().toISOString() } },
+  };
+
+  if (params.brandUrl) {
+    properties.BrandUrl = { url: params.brandUrl };
+  }
+  if (params.phone) {
+    properties.Phone = { rich_text: [{ text: { content: params.phone } }] };
+  }
+
   const page = await (notion.pages as any).create({
     parent: { database_id: DATABASE_ID },
-    properties: {
-      Name: { title: [{ text: { content: params.name } }] },
-      Email: { email: params.email },
-      SessionID: { rich_text: [{ text: { content: params.passwordHash } }] },
-      QuotasRemaining: { number: 5 },
-      TurnsUsed: { number: 0 },
-      CreatedAt: { date: { start: new Date().toISOString() } },
-    },
+    properties,
   });
 
   return {
@@ -75,7 +86,7 @@ export async function createUser(params: {
     name: params.name,
     email: params.email,
     passwordHash: params.passwordHash,
-    quotasRemaining: 5,
+    quotasRemaining: 100,
     turnsUsed: 0,
     createdAt: new Date().toISOString(),
   };
