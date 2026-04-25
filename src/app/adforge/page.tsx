@@ -109,6 +109,10 @@ export default function AdForgePage() {
       if (data.dna.brandName && !brandName) {
         setBrandName(data.dna.brandName);
       }
+      // Auto-fill selling points from DNA
+      if (data.dna.sellingPoints && data.dna.sellingPoints.length > 0 && !sellingPoint) {
+        setSellingPoint(data.dna.sellingPoints.join(', '));
+      }
     } catch (err: any) {
       setDnaError(err?.message || '品牌DNA分析失败');
     } finally {
