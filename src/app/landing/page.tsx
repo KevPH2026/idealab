@@ -723,6 +723,37 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ─── Pain Points ─── */}
+      <section className="py-20 px-6" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="text-xs text-violet-400/80 font-medium uppercase tracking-[4px] mb-3">DTC卖家的真实困境</p>
+            <h2 className="text-2xl md:text-3xl font-black text-white mb-3">品味和效率，真的只能二选一？</h2>
+            <p className="text-sm text-white/25 max-w-lg mx-auto">
+              你花三个月打磨产品，花一周调品牌调性，最后却在素材上妥协——因为好设计太慢，快设计太丑
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {[
+              { icon: '⏰', title: '一张素材做3天', desc: '找参考、写brief、等设计、改稿...上新节奏被素材拖垮' },
+              { icon: '💸', title: '外包一张¥300起', desc: '按月结算动辄上万，旺季加急还要翻倍' },
+              { icon: '🎨', title: '模板工具千篇一律', desc: 'Canva生成的素材没有品牌感，用户一眼看出是模板' },
+              { icon: '📱', title: '多平台尺寸改到崩溃', desc: 'IG要1:1，Story要9:16，FB要16:9，一张图改8个版本' },
+            ].map((p, i) => (
+              <div key={i} className="p-5 rounded-xl" style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="flex items-start gap-3">
+                  <span className="text-xl">{p.icon}</span>
+                  <div>
+                    <h3 className="text-sm font-bold text-white mb-1">{p.title}</h3>
+                    <p className="text-xs text-white/25 leading-relaxed">{p.desc}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ─── Demo Carousel ─── */}
       <section id="demo" className="px-6 pb-20">
         <div className="max-w-5xl mx-auto">
@@ -755,6 +786,52 @@ export default function LandingPage() {
                 <span className="text-[11px]">{s.emoji}</span>
                 <span className="hidden sm:inline text-[11px] font-medium">{s.category}</span>
               </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Testimonials ─── */}
+      <section className="py-20 px-6" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="text-xs text-violet-400/80 font-medium uppercase tracking-[4px] mb-3">真实卖家反馈</p>
+            <h2 className="text-2xl md:text-3xl font-black text-white">素材质量，他们说了算</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-5">
+            {[
+              {
+                name: '林薇', role: 'DTC品牌创始人', brand: 'GlowSkin', avatar: '👩‍💼',
+                content: '以前上新前一周就开始焦虑素材，现在30分钟搞定一整套。最惊喜的是AI真的懂我们的品牌调性，不是套模板。',
+                metric: '素材产出速度提升 20x'
+              },
+              {
+                name: 'Mark Chen', role: '跨境电商运营总监', brand: 'SoundWave', avatar: '👨‍💻',
+                content: '我们测试过5个AI生图工具，100x是唯一一个能稳定输出商用级质量的。欧洲市场的素材直接能用，不需要二次修图。',
+                metric: '外包成本降低 85%'
+              },
+              {
+                name: 'Sarah Zhang', role: '独立站卖家', brand: 'BeanCraft', avatar: '☕',
+                content: '一个人管产品、运营、客服，根本没有时间做素材。100x让我终于可以把精力放回产品和用户上。',
+                metric: '每周节省 15+ 小时'
+              },
+            ].map((t, i) => (
+              <div key={i} className="p-6 rounded-xl" style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg" style={{ background: 'rgba(139,92,246,0.1)' }}>
+                    {t.avatar}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">{t.name}</p>
+                    <p className="text-[11px] text-white/25">{t.role} · {t.brand}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-white/30 leading-relaxed mb-4">"{t.content}"</p>
+                <div className="flex items-center gap-1.5">
+                  <Zap className="w-3 h-3 text-violet-400" />
+                  <span className="text-[11px] font-medium text-violet-300">{t.metric}</span>
+                </div>
+              </div>
             ))}
           </div>
         </div>
