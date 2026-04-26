@@ -25,6 +25,7 @@ export function middleware(req: NextRequest) {
       url.pathname.startsWith('/api/') ||
       url.pathname.startsWith('/admin') ||
       url.pathname.startsWith('/landing') ||
+      url.pathname.startsWith('/inspire') ||
       url.pathname.startsWith('/_next') ||
       url.pathname.startsWith('/demo/');
     if (!allowed) {
