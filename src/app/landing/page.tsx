@@ -67,7 +67,7 @@ const T = {
     waitlistTitle: '加入 Waitlist',
     waitlistSub: '成为第一批用户，每天免费生成100张素材',
     waitlistName: '你的名字',
-    waitlistBrand: '品牌名称',
+    waitlistBrand: '独立站/店铺链接',
     waitlistContact: '手机号或邮箱',
     waitlistSubmit: '立即预约',
     waitlistSuccess: '预约成功！上线后第一时间通知你',
@@ -136,7 +136,7 @@ const T = {
     waitlistTitle: 'Join Waitlist',
     waitlistSub: 'Be among the first. 100 free generations per day.',
     waitlistName: 'Your Name',
-    waitlistBrand: 'Brand Name',
+    waitlistBrand: 'Store/Website URL',
     waitlistContact: 'Phone or Email',
     waitlistSubmit: 'Reserve My Spot',
     waitlistSuccess: "You're on the list! We'll notify you at launch.",
@@ -327,6 +327,7 @@ function WaitlistForm({ lang }: { lang: Lang }) {
             value={brand}
             onChange={e => setBrand(e.target.value)}
             placeholder={t.waitlistBrand}
+            required
             className="w-full h-11 pl-10 pr-4 rounded-xl text-white placeholder:text-white/15 text-sm focus:outline-none transition-all"
             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
           />
@@ -345,7 +346,7 @@ function WaitlistForm({ lang }: { lang: Lang }) {
         </div>
         <button
           type="submit"
-          disabled={loading || !name.trim() || !contact.trim()}
+          disabled={loading || !name.trim() || !brand.trim() || !contact.trim()}
           className="w-full h-11 rounded-xl text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-30 transition-all"
           style={{
             background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
