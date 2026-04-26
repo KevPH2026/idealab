@@ -41,8 +41,8 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       const err = await res.json();
-      console.error('[WAITLIST] Notion error:', err);
-      return NextResponse.json({ error: '保存失败，请稍后重试' }, { status: 500 });
+      console.error('[WAITLIST] Notion error:', JSON.stringify(err));
+      return NextResponse.json({ error: `Notion error: ${err.message || 'unknown'}`, code: err.code }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
