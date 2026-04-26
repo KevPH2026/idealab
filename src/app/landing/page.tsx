@@ -246,12 +246,23 @@ function WaitlistForm({ lang }: { lang: Lang }) {
     if (!name.trim() || !contact.trim()) return;
     setLoading(true);
 
-    // TODO: Send to your backend/API
-    // For now, simulate API call
-    await new Promise(r => setTimeout(r, 1000));
-
-    setSubmitted(true);
-    setLoading(false);
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, brand, contact }),
+      });
+      if (res.ok) {
+        setSubmitted(true);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || '提交失败，请稍后重试');
+      }
+    } catch {
+      alert('网络错误，请稍后重试');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
