@@ -147,38 +147,54 @@ export default function AdForgePage() {
         referenceImage: previewSrc || undefined,
       };
 
-      // 并发请求所有场景，但每个独立处理
+      // 限制并发为2张，避免触发API限流
+      const CONCURRENCY = 2;
       const sceneCount = 8;
-      const promises = Array.from({ length: sceneCount }, async (_, i) => {
-        try {
-          const res = await fetch('/api/adforge', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...basePayload, sceneIndex: i }),
-          });
-          if (!res.ok) {
-            console.error(`Scene ${i} failed:`, res.status);
-            return null;
-          }
-          const data = await res.json();
-          return data.image || null;
-        } catch (err) {
-          console.error(`Scene ${i} error:`, err);
-          return null;
+      const results: (any | null)[] = new Array(sceneCount).fill(null);
+      
+      // 分批并发，每批2张
+      for (let batchStart = 0; batchStart < sceneCount; batchStart += CONCURRENCY) {
+        const batchEnd = Math.min(batchStart + CONCURRENCY, sceneCount);
+        const batchPromises = [];
+        
+        for (let i = batchStart; i < batchEnd; i++) {
+          batchPromises.push(
+            fetch('/api/adforge', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...basePayload, sceneIndex: i }),
+            }).then(async res => {
+              if (!res.ok) {
+                console.error(`Scene ${i} failed:`, res.status);
+                return null;
+              }
+              const data = await res.json();
+              return data.image || null;
+            }).catch(err => {
+              console.error(`Scene ${i} error:`, err);
+              return null;
+            })
+          );
         }
-      });
-
-      // 流式处理：每张图完成立即显示
-      let completed = 0;
-      for (const promise of promises) {
-        const image = await promise;
-        completed++;
-        if (image) {
-          setImages(prev => [...prev, image]);
+        
+        const batchResults = await Promise.all(batchPromises);
+        for (let i = 0; i < batchResults.length; i++) {
+          const image = batchResults[i];
+          const sceneIdx = batchStart + i;
+          results[sceneIdx] = image;
+          if (image) {
+            setImages(prev => [...prev, image]);
+          }
+        }
+        
+        // 批次间延迟3秒，避免触发限流
+        if (batchEnd < sceneCount) {
+          await new Promise(r => setTimeout(r, 3000));
         }
       }
 
-      if (completed === 0 || images.length === 0) {
+      const successCount = results.filter(r => r !== null).length;
+      if (successCount === 0) {
         setError('全部生成失败，请稍后重试');
       }
     } catch (e: unknown) {
