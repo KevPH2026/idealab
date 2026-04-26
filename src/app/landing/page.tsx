@@ -63,7 +63,7 @@ const T = {
       },
     ],
     countdownTitle: '产品上线倒计时',
-    countdownSub: '72小时后正式开启',
+    countdownSub: '5月3日正式开启',
     waitlistTitle: '加入 Waitlist',
     waitlistSub: '成为第一批用户，每天免费生成100张素材',
     waitlistName: '你的名字',
@@ -132,7 +132,7 @@ const T = {
       },
     ],
     countdownTitle: 'Launch Countdown',
-    countdownSub: 'Going live in 72 hours',
+    countdownSub: 'Going live on May 3',
     waitlistTitle: 'Join Waitlist',
     waitlistSub: 'Be among the first. 100 free generations per day.',
     waitlistName: 'Your Name',
@@ -155,9 +155,8 @@ function CountdownTimer({ lang }: { lang: Lang }) {
 
   useEffect(() => {
     setMounted(true);
-    // 72 hours from now
-    const target = new Date();
-    target.setHours(target.getHours() + 72);
+    // 固定上线时间：2026-05-03 00:00:00 (北京时间)
+    const target = new Date('2026-05-03T00:00:00+08:00');
 
     const update = () => {
       const now = new Date();
