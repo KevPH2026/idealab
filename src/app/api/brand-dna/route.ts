@@ -364,7 +364,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const buffer = await resolveImage(image);
-    if (!buffer || buffer.length < 500) {
+    if (!buffer || buffer.length < 100) {
       return NextResponse.json({ error: '无法解析图片，请上传真实图片文件' }, { status: 400 });
     }
 
