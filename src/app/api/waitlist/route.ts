@@ -35,12 +35,6 @@ export async function POST(req: NextRequest) {
           'Contact': {
             rich_text: [{ text: { content: contact.trim() } }],
           },
-          'Source': {
-            select: { name: '100x Waitlist' },
-          },
-          'Status': {
-            select: { name: 'Pending' },
-          },
         },
       }),
     });
