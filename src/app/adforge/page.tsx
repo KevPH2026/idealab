@@ -147,10 +147,9 @@ export default function AdForgePage() {
         referenceImage: previewSrc || undefined,
       };
 
-      // 逐张请求，每张独立，流式追加到images
+      // 并发请求所有场景，但每个独立处理
       const sceneCount = 8;
-      let failCount = 0;
-      for (let i = 0; i < sceneCount; i++) {
+      const promises = Array.from({ length: sceneCount }, async (_, i) => {
         try {
           const res = await fetch('/api/adforge', {
             method: 'POST',
@@ -158,20 +157,28 @@ export default function AdForgePage() {
             body: JSON.stringify({ ...basePayload, sceneIndex: i }),
           });
           if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            failCount++;
-            continue;
+            console.error(`Scene ${i} failed:`, res.status);
+            return null;
           }
           const data = await res.json();
-          if (data.image) {
-            setImages(prev => [...prev, data.image]);
-          }
-        } catch {
-          failCount++;
+          return data.image || null;
+        } catch (err) {
+          console.error(`Scene ${i} error:`, err);
+          return null;
+        }
+      });
+
+      // 流式处理：每张图完成立即显示
+      let completed = 0;
+      for (const promise of promises) {
+        const image = await promise;
+        completed++;
+        if (image) {
+          setImages(prev => [...prev, image]);
         }
       }
 
-      if (failCount === sceneCount) {
+      if (completed === 0 || images.length === 0) {
         setError('全部生成失败，请稍后重试');
       }
     } catch (e: unknown) {
