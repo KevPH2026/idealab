@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowRight, Sparkles, Clock, Zap, Check, ChevronRight, Lock, Gift, Crown } from 'lucide-react';
+import { ArrowRight, Sparkles, Clock, Zap, Check, Lock, Gift, Crown } from 'lucide-react';
 
 const DEMO_STEPS = [
   {
@@ -36,6 +36,100 @@ const DEMO_STEPS = [
       { src: '/demo/tech_06.webp', label: 'Google · 16:9', scene: '生活方式融入' },
     ],
   },
+  {
+    brand: 'BeanCraft',
+    product: '单一产地手冲咖啡豆',
+    market: '🇯🇵 日本',
+    dna: {
+      colors: ['#6B4423', '#A0522D', '#D4A574'],
+      keywords: ['artisan', 'craft', 'authentic'],
+      style: 'warm, rustic, handcrafted',
+    },
+    images: [
+      { src: '/demo/coffee_01.webp', label: 'IG Feed · 1:1', scene: '咖啡冲泡过程' },
+      { src: '/demo/coffee_02.webp', label: 'Story · 9:16', scene: '豆袋质感展示' },
+      { src: '/demo/coffee_03.webp', label: 'FB Ad · 16:9', scene: '早晨咖啡时光' },
+      { src: '/demo/coffee_04.webp', label: 'TikTok · 9:16', scene: '拉花艺术特写' },
+    ],
+  },
+  {
+    brand: 'NovaRing',
+    product: '智能健康监测戒指',
+    market: '🇺🇸 北美',
+    dna: {
+      colors: ['#1A1A2E', '#4A4E69', '#9A8C98'],
+      keywords: ['futuristic', 'health', 'sleek'],
+      style: 'dark, premium, tech-forward',
+    },
+    images: [
+      { src: '/demo/ring_01.webp', label: 'IG Feed · 1:1', scene: '产品特写展示' },
+      { src: '/demo/ring_02.webp', label: 'Story · 9:16', scene: '佩戴效果展示' },
+      { src: '/demo/ring_03.webp', label: 'FB Ad · 16:9', scene: '科技感场景' },
+      { src: '/demo/ring_04.webp', label: 'Google · 16:9', scene: '健康数据可视化' },
+    ],
+  },
+  {
+    brand: 'FitPulse',
+    product: '智能运动追踪手环',
+    market: '🇪🇺 欧洲',
+    dna: {
+      colors: ['#E63946', '#F1FAEE', '#457B9D'],
+      keywords: ['energetic', 'sporty', 'dynamic'],
+      style: 'bold, active, vibrant',
+    },
+    images: [
+      { src: '/demo/sport_01.webp', label: 'IG Feed · 1:1', scene: '运动场景展示' },
+      { src: '/demo/sport_02.webp', label: 'Story · 9:16', scene: '跑步动态捕捉' },
+      { src: '/demo/sport_03.webp', label: 'FB Ad · 16:9', scene: '健身房场景' },
+      { src: '/demo/sport_04.webp', label: 'TikTok · 9:16', scene: '数据成就分享' },
+    ],
+  },
+  {
+    brand: 'MechX',
+    product: '桌面协作机器人',
+    market: '🇨🇳 中国',
+    dna: {
+      colors: ['#0D1B2A', '#1B263B', '#415A77'],
+      keywords: ['industrial', 'precision', 'innovation'],
+      style: 'mechanical, precise, futuristic',
+    },
+    images: [
+      { src: '/demo/robot_01.webp', label: 'IG Feed · 1:1', scene: '产品外观展示' },
+      { src: '/demo/robot_02.webp', label: 'Story · 9:16', scene: '工作场景演示' },
+      { src: '/demo/robot_03.webp', label: 'FB Ad · 16:9', scene: '细节特写镜头' },
+      { src: '/demo/robot_04.webp', label: 'Google · 16:9', scene: '团队协作画面' },
+    ],
+  },
+];
+
+const GALLERY_IMAGES = [
+  { src: '/demo/beauty_01.webp', brand: 'GlowSkin', scene: '晨间生活场景', ratio: '1:1' },
+  { src: '/demo/tech_01.webp', brand: 'SoundWave', scene: '极简产品展示', ratio: '1:1' },
+  { src: '/demo/coffee_01.webp', brand: 'BeanCraft', scene: '咖啡冲泡过程', ratio: '1:1' },
+  { src: '/demo/ring_01.webp', brand: 'NovaRing', scene: '产品特写展示', ratio: '1:1' },
+  { src: '/demo/sport_01.webp', brand: 'FitPulse', scene: '运动场景展示', ratio: '1:1' },
+  { src: '/demo/robot_01.webp', brand: 'MechX', scene: '产品外观展示', ratio: '1:1' },
+  { src: '/demo/beauty_02.webp', brand: 'GlowSkin', scene: '产品平铺展示', ratio: '16:9' },
+  { src: '/demo/tech_02.webp', brand: 'SoundWave', scene: '户外使用场景', ratio: '9:16' },
+  { src: '/demo/coffee_02.webp', brand: 'BeanCraft', scene: '豆袋质感展示', ratio: '9:16' },
+  { src: '/demo/ring_02.webp', brand: 'NovaRing', scene: '佩戴效果展示', ratio: '9:16' },
+  { src: '/demo/sport_02.webp', brand: 'FitPulse', scene: '跑步动态捕捉', ratio: '9:16' },
+  { src: '/demo/robot_02.webp', brand: 'MechX', scene: '工作场景演示', ratio: '9:16' },
+  { src: '/demo/beauty_03.webp', brand: 'GlowSkin', scene: '开箱惊喜时刻', ratio: '9:16' },
+  { src: '/demo/tech_03.webp', brand: 'SoundWave', scene: '功能特写镜头', ratio: '16:9' },
+  { src: '/demo/coffee_03.webp', brand: 'BeanCraft', scene: '早晨咖啡时光', ratio: '16:9' },
+  { src: '/demo/ring_03.webp', brand: 'NovaRing', scene: '科技感场景', ratio: '16:9' },
+  { src: '/demo/sport_03.webp', brand: 'FitPulse', scene: '健身房场景', ratio: '16:9' },
+  { src: '/demo/robot_03.webp', brand: 'MechX', scene: '细节特写镜头', ratio: '16:9' },
+  { src: '/demo/beauty_04.webp', brand: 'GlowSkin', scene: '使用前后对比', ratio: '9:16' },
+  { src: '/demo/tech_04.webp', brand: 'SoundWave', scene: '产品细节展示', ratio: '1:1' },
+  { src: '/demo/coffee_04.webp', brand: 'BeanCraft', scene: '拉花艺术特写', ratio: '9:16' },
+  { src: '/demo/ring_04.webp', brand: 'NovaRing', scene: '健康数据可视化', ratio: '16:9' },
+  { src: '/demo/sport_04.webp', brand: 'FitPulse', scene: '数据成就分享', ratio: '9:16' },
+  { src: '/demo/robot_04.webp', brand: 'MechX', scene: '团队协作画面', ratio: '16:9' },
+  { src: '/demo/tech_05.webp', brand: 'SoundWave', scene: '包装盒展示', ratio: '1:1' },
+  { src: '/demo/tech_06.webp', brand: 'SoundWave', scene: '生活方式融入', ratio: '16:9' },
+  { src: '/demo/tech_07.webp', brand: 'SoundWave', scene: '配件全家福', ratio: '1:1' },
 ];
 
 const PAIN_POINTS = [
@@ -97,6 +191,7 @@ export default function DemoPage() {
   const [contact, setContact] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [galleryFilter, setGalleryFilter] = useState<string | null>(null);
 
   const demo = DEMO_STEPS[activeDemo];
 
@@ -133,6 +228,10 @@ export default function DemoPage() {
   const restartDemo = () => {
     setDemoStep(0);
   };
+
+  const filteredGallery = galleryFilter
+    ? GALLERY_IMAGES.filter(img => img.brand === galleryFilter)
+    : GALLERY_IMAGES;
 
   return (
     <div className="min-h-screen bg-[#050507] text-white selection:bg-violet-500/30 overflow-x-hidden">
@@ -228,7 +327,7 @@ export default function DemoPage() {
             </div>
 
             {/* Brand selector */}
-            <div className="flex items-center justify-center gap-3 mb-8">
+            <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
               {DEMO_STEPS.map((d, i) => (
                 <button
                   key={i}
@@ -338,6 +437,63 @@ export default function DemoPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </section>
+
+        {/* ─── Full Gallery ─── */}
+        <section className="py-16 px-6" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-10">
+              <p className="text-xs text-violet-400/80 font-medium uppercase tracking-[4px] mb-3">素材展示</p>
+              <h2 className="text-2xl md:text-3xl font-black text-white mb-3">27张AI生成素材，覆盖6大品类</h2>
+              <p className="text-sm text-white/25">全部由100x AI生成，未经人工修图</p>
+            </div>
+
+            {/* Gallery Filter */}
+            <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
+              <button
+                onClick={() => setGalleryFilter(null)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                style={{
+                  background: galleryFilter === null ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.03)',
+                  border: galleryFilter === null ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.05)',
+                  color: galleryFilter === null ? 'rgba(196,181,253,0.9)' : 'rgba(255,255,255,0.3)',
+                }}>
+                全部
+              </button>
+              {DEMO_STEPS.map((d, i) => (
+                <button
+                  key={i}
+                  onClick={() => setGalleryFilter(d.brand)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                  style={{
+                    background: galleryFilter === d.brand ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.03)',
+                    border: galleryFilter === d.brand ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.05)',
+                    color: galleryFilter === d.brand ? 'rgba(196,181,253,0.9)' : 'rgba(255,255,255,0.3)',
+                  }}>
+                  {d.brand}
+                </button>
+              ))}
+            </div>
+
+            {/* Gallery Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {filteredGallery.map((img, i) => (
+                <div key={i} className="group relative rounded-xl overflow-hidden"
+                  style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <img src={img.src} alt={img.scene} className="w-full aspect-square object-cover transition-transform group-hover:scale-105" />
+                  <div className="absolute inset-0 flex flex-col justify-end p-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%)' }}>
+                    <p className="text-[10px] font-bold text-white/90">{img.brand}</p>
+                    <p className="text-[9px] text-white/40">{img.scene}</p>
+                  </div>
+                  <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[8px] font-bold text-white/60"
+                    style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+                    {img.ratio}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
