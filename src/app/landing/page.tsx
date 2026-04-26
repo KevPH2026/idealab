@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowRight, Sparkles, ChevronLeft, ChevronRight, Check, Zap, Crown } from 'lucide-react';
+import { ArrowRight, Sparkles, ChevronLeft, ChevronRight, Check, Zap, Crown, Clock, Mail, Phone, User, Building2, Gift } from 'lucide-react';
 
 type Lang = 'zh' | 'en';
 
@@ -62,6 +62,18 @@ const T = {
         highlight: false,
       },
     ],
+    countdownTitle: '产品上线倒计时',
+    countdownSub: '72小时后正式开启',
+    waitlistTitle: '加入 Waitlist',
+    waitlistSub: '成为第一批用户，每天免费生成100张素材',
+    waitlistName: '你的名字',
+    waitlistBrand: '品牌名称',
+    waitlistContact: '手机号或邮箱',
+    waitlistSubmit: '立即预约',
+    waitlistSuccess: '预约成功！上线后第一时间通知你',
+    waitlistBenefit1: '每天免费100张',
+    waitlistBenefit2: '优先体验新功能',
+    waitlistBenefit3: '专属客服支持',
   },
   en: {
     badge: 'DTC Ad Creatives · 100x Efficiency',
@@ -119,8 +131,230 @@ const T = {
         highlight: false,
       },
     ],
+    countdownTitle: 'Launch Countdown',
+    countdownSub: 'Going live in 72 hours',
+    waitlistTitle: 'Join Waitlist',
+    waitlistSub: 'Be among the first. 100 free generations per day.',
+    waitlistName: 'Your Name',
+    waitlistBrand: 'Brand Name',
+    waitlistContact: 'Phone or Email',
+    waitlistSubmit: 'Reserve My Spot',
+    waitlistSuccess: "You're on the list! We'll notify you at launch.",
+    waitlistBenefit1: '100 free/day',
+    waitlistBenefit2: 'Early feature access',
+    waitlistBenefit3: 'Priority support',
   },
 };
+
+// ─── Countdown Timer ──────────────────────────────────────────────────────────
+
+function CountdownTimer({ lang }: { lang: Lang }) {
+  const t = T[lang];
+  const [timeLeft, setTimeLeft] = useState({ days: 3, hours: 0, minutes: 0, seconds: 0 });
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // 72 hours from now
+    const target = new Date();
+    target.setHours(target.getHours() + 72);
+
+    const update = () => {
+      const now = new Date();
+      const diff = target.getTime() - now.getTime();
+      if (diff <= 0) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+        return;
+      }
+      setTimeLeft({
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+        seconds: Math.floor((diff % (1000 * 60)) / 1000),
+      });
+    };
+
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  if (!mounted) return null;
+
+  const pad = (n: number) => String(n).padStart(2, '0');
+
+  return (
+    <div className="relative rounded-2xl p-8 md:p-10 text-center"
+      style={{
+        background: 'linear-gradient(145deg, rgba(139,92,246,0.08), rgba(6,182,212,0.04))',
+        border: '1px solid rgba(139,92,246,0.2)',
+        boxShadow: '0 0 60px rgba(139,92,246,0.1), inset 0 1px 0 rgba(255,255,255,0.05)',
+      }}>
+      {/* Glow orb */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%)', filter: 'blur(60px)' }} />
+
+      <div className="relative">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium mb-6"
+          style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', color: 'rgba(196,181,253,0.9)' }}>
+          <Clock className="w-3.5 h-3.5" />
+          {t.countdownSub}
+        </div>
+
+        <h2 className="text-2xl md:text-3xl font-black text-white mb-8">{t.countdownTitle}</h2>
+
+        <div className="flex items-center justify-center gap-3 md:gap-4">
+          {[
+            { value: timeLeft.days, label: lang === 'zh' ? '天' : 'DAYS' },
+            { value: timeLeft.hours, label: lang === 'zh' ? '时' : 'HRS' },
+            { value: timeLeft.minutes, label: lang === 'zh' ? '分' : 'MIN' },
+            { value: timeLeft.seconds, label: lang === 'zh' ? '秒' : 'SEC' },
+          ].map((item, i) => (
+            <div key={i} className="flex flex-col items-center">
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl flex items-center justify-center mb-2"
+                style={{
+                  background: 'rgba(5,5,7,0.6)',
+                  border: '1px solid rgba(139,92,246,0.2)',
+                  boxShadow: '0 0 20px rgba(139,92,246,0.1), inset 0 1px 0 rgba(255,255,255,0.05)',
+                }}>
+                <span className="text-2xl md:text-3xl font-black tabular-nums"
+                  style={{ color: 'rgba(196,181,253,0.95)' }}>
+                  {pad(item.value)}
+                </span>
+              </div>
+              <span className="text-[10px] text-white/25 font-medium tracking-wider">{item.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Waitlist Form ────────────────────────────────────────────────────────────
+
+function WaitlistForm({ lang }: { lang: Lang }) {
+  const t = T[lang];
+  const [name, setName] = useState('');
+  const [brand, setBrand] = useState('');
+  const [contact, setContact] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !contact.trim()) return;
+    setLoading(true);
+
+    // TODO: Send to your backend/API
+    // For now, simulate API call
+    await new Promise(r => setTimeout(r, 1000));
+
+    setSubmitted(true);
+    setLoading(false);
+  };
+
+  if (submitted) {
+    return (
+      <div className="rounded-2xl p-8 md:p-10 text-center"
+        style={{
+          background: 'rgba(139,92,246,0.04)',
+          border: '1px solid rgba(139,92,246,0.2)',
+        }}>
+        <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
+          style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}>
+          <Check className="w-7 h-7 text-violet-400" />
+        </div>
+        <h3 className="text-xl font-bold text-white mb-2">{t.waitlistSuccess}</h3>
+        <p className="text-sm text-white/30">100x Team</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl p-6 md:p-8"
+      style={{
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
+      }}>
+      <div className="text-center mb-6">
+        <h3 className="text-xl md:text-2xl font-bold text-white mb-2">{t.waitlistTitle}</h3>
+        <p className="text-sm text-white/30">{t.waitlistSub}</p>
+      </div>
+
+      {/* Benefits */}
+      <div className="flex items-center justify-center gap-4 mb-6">
+        {[
+          { icon: Gift, text: t.waitlistBenefit1 },
+          { icon: Zap, text: t.waitlistBenefit2 },
+          { icon: Crown, text: t.waitlistBenefit3 },
+        ].map((b, i) => (
+          <div key={i} className="flex items-center gap-1.5 text-[11px] text-white/30">
+            <b.icon className="w-3.5 h-3.5 text-violet-400/60" />
+            {b.text}
+          </div>
+        ))}
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="relative">
+          <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/15" />
+          <input
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder={t.waitlistName}
+            required
+            className="w-full h-11 pl-10 pr-4 rounded-xl text-white placeholder:text-white/15 text-sm focus:outline-none transition-all"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+          />
+        </div>
+        <div className="relative">
+          <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/15" />
+          <input
+            type="text"
+            value={brand}
+            onChange={e => setBrand(e.target.value)}
+            placeholder={t.waitlistBrand}
+            className="w-full h-11 pl-10 pr-4 rounded-xl text-white placeholder:text-white/15 text-sm focus:outline-none transition-all"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+          />
+        </div>
+        <div className="relative">
+          <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/15" />
+          <input
+            type="text"
+            value={contact}
+            onChange={e => setContact(e.target.value)}
+            placeholder={t.waitlistContact}
+            required
+            className="w-full h-11 pl-10 pr-4 rounded-xl text-white placeholder:text-white/15 text-sm focus:outline-none transition-all"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={loading || !name.trim() || !contact.trim()}
+          className="w-full h-11 rounded-xl text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-30 transition-all"
+          style={{
+            background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+            boxShadow: '0 0 20px rgba(139,92,246,0.3)',
+          }}>
+          {loading ? (
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <>
+              {t.waitlistSubmit}
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+// ─── Rest of landing page (Demo, How it works, Pricing, etc.) ────────────────
 
 type ImgRatio = 'square' | 'wide' | 'tall';
 
@@ -220,7 +454,6 @@ const DEMO_SERIES: DemoSeries[] = [
   },
 ];
 
-// Ad copy overlay — all English, high-converting marketing copy
 const AD_COPY: Record<string, { headline: string; sub: string; cta: string }[]> = {
   SoundWave: [
     { headline: 'Silence The Noise', sub: 'Up to 98% noise cancellation', cta: 'GET YOURS →' },
@@ -260,33 +493,51 @@ const AD_COPY: Record<string, { headline: string; sub: string; cta: string }[]> 
   ],
 };
 
+function AdTextOverlay({ copy }: { copy: { headline: string; sub: string; cta: string } }) {
+  return (
+    <div className="absolute inset-0 flex flex-col justify-end p-3 md:p-4"
+      style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.15) 45%, transparent 65%)' }}>
+      <div className="space-y-1 md:space-y-1.5">
+        <p className="text-white/90 font-black text-sm md:text-base leading-tight"
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}>
+          {copy.headline}
+        </p>
+        <p className="text-white/50 text-[9px] md:text-[10px] font-medium"
+          style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>
+          {copy.sub}
+        </p>
+        <span className="inline-block mt-1 px-2 py-0.5 rounded text-[8px] md:text-[9px] font-bold text-white/80"
+          style={{
+            background: 'rgba(139,92,246,0.45)',
+            backdropFilter: 'blur(4px)',
+            border: '1px solid rgba(139,92,246,0.35)',
+          }}>
+          {copy.cta}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function CarouselGrid({ series }: { series: DemoSeries }) {
   const copies = AD_COPY[series.name] || [];
-
   return (
     <div className="rounded-2xl p-[1px]"
       style={{ background: 'linear-gradient(145deg, rgba(139,92,246,0.25), rgba(255,255,255,0.04), rgba(6,182,212,0.15))' }}>
       <div className="rounded-2xl p-4 md:p-5"
         style={{ background: 'rgba(10,10,15,0.95)', backdropFilter: 'blur(20px)' }}>
-
-        {/* Header */}
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-2 h-2 rounded-full bg-violet-500"
-            style={{ boxShadow: '0 0 8px rgba(139,92,246,0.6)' }} />
+          <div className="w-2 h-2 rounded-full bg-violet-500" style={{ boxShadow: '0 0 8px rgba(139,92,246,0.6)' }} />
           <span className="text-sm text-white/50 font-medium">{series.emoji}</span>
           <span className="text-sm text-white/40 font-semibold">{series.category}</span>
           <span className="text-[10px] text-white/15 font-mono ml-auto">{series.name}</span>
         </div>
-
-        {/* Bento Grid — all series: sq + tall + wide1 / info + tall + wide2 */}
         <div className="grid gap-1.5 md:gap-2"
           style={{
             gridTemplateColumns: '1fr 1fr 2fr',
             gridTemplateRows: '1fr 1fr',
             gridTemplateAreas: '"sq tall wide1" "info tall wide2"',
           }}>
-
-          {/* Square image */}
           {(() => {
             const img = series.images.find(i => i.ratio === 'square');
             const copy = copies[series.images.indexOf(img!)];
@@ -301,8 +552,6 @@ function CarouselGrid({ series }: { series: DemoSeries }) {
               </div>
             );
           })()}
-
-          {/* Tall image */}
           {(() => {
             const img = series.images.find(i => i.ratio === 'tall');
             const copy = copies[series.images.indexOf(img!)];
@@ -317,8 +566,6 @@ function CarouselGrid({ series }: { series: DemoSeries }) {
               </div>
             );
           })()}
-
-          {/* Wide images */}
           {series.images.filter(img => img.ratio === 'wide').map((img, idx) => {
             const area = `wide${idx + 1}`;
             const copy = copies[series.images.indexOf(img)];
@@ -332,11 +579,8 @@ function CarouselGrid({ series }: { series: DemoSeries }) {
               </div>
             );
           })}
-
-          {/* Info card — design-forward, English primary */}
           <div className="rounded-xl p-4 md:p-5 flex flex-col justify-between relative overflow-hidden"
             style={{ gridArea: 'info', background: 'rgba(139,92,246,0.04)', border: '1px solid rgba(139,92,246,0.12)' }}>
-            {/* Decorative gradient orb */}
             <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full pointer-events-none"
               style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)' }} />
             <div className="relative">
@@ -359,46 +603,15 @@ function CarouselGrid({ series }: { series: DemoSeries }) {
   );
 }
 
-/* Reusable ad text overlay component */
-function AdTextOverlay({ copy }: { copy: { headline: string; sub: string; cta: string } }) {
-  return (
-    <div className="absolute inset-0 flex flex-col justify-end p-3 md:p-4"
-      style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.15) 45%, transparent 65%)' }}>
-      <div className="space-y-1 md:space-y-1.5">
-        <p className="text-white/90 font-black text-sm md:text-base leading-tight animate-fade-in-up"
-          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)', animationDelay: '300ms', animationFillMode: 'both' }}>
-          {copy.headline}
-        </p>
-        <p className="text-white/50 text-[9px] md:text-[10px] font-medium animate-fade-in-up"
-          style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)', animationDelay: '500ms', animationFillMode: 'both' }}>
-          {copy.sub}
-        </p>
-        <span className="inline-block mt-1 px-2 py-0.5 rounded text-[8px] md:text-[9px] font-bold text-white/80 animate-fade-in-up"
-          style={{
-            animationDelay: '700ms',
-            animationFillMode: 'both',
-            background: 'rgba(139,92,246,0.45)',
-            backdropFilter: 'blur(4px)',
-            border: '1px solid rgba(139,92,246,0.35)',
-          }}>
-          {copy.cta}
-        </span>
-      </div>
-    </div>
-  );
-}
-
 export default function LandingPage() {
   const [lang, setLang] = useState<Lang>('zh');
   const [activeSeries, setActiveSeries] = useState(0);
   const t = T[lang];
-
   const total = DEMO_SERIES.length;
 
   const next = useCallback(() => setActiveSeries(i => (i + 1) % total), [total]);
   const prev = useCallback(() => setActiveSeries(i => (i - 1 + total) % total), [total]);
 
-  // Auto-advance every 5s
   useEffect(() => {
     const timer = setInterval(next, 5000);
     return () => clearInterval(timer);
@@ -489,17 +702,24 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ─── Countdown + Waitlist ─── */}
+      <section className="px-6 pb-20">
+        <div className="max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-6">
+            <CountdownTimer lang={lang} />
+            <WaitlistForm lang={lang} />
+          </div>
+        </div>
+      </section>
+
       {/* ─── Demo Carousel ─── */}
       <section id="demo" className="px-6 pb-20">
         <div className="max-w-5xl mx-auto">
           <p className="text-center text-[10px] text-white/12 uppercase tracking-[5px] mb-1">Generated by 100x</p>
           <p className="text-center text-xs text-white/20 mb-6">{t.demoCaption}</p>
 
-          {/* Carousel */}
           <div className="relative">
             <CarouselGrid series={series} />
-
-            {/* Nav arrows */}
             <button onClick={prev}
               className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 md:-translate-x-5 w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110"
               style={{ background: 'rgba(10,10,15,0.8)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)' }}>
@@ -512,7 +732,6 @@ export default function LandingPage() {
             </button>
           </div>
 
-          {/* Dots + series tabs */}
           <div className="flex items-center justify-center gap-2 mt-5">
             {DEMO_SERIES.map((s, i) => (
               <button key={i} onClick={() => setActiveSeries(i)}
@@ -570,17 +789,10 @@ export default function LandingPage() {
             {t.plans.map((plan, i) => (
               <div key={i} className="relative rounded-2xl p-7 flex flex-col transition-all duration-300 hover:scale-[1.01]"
                 style={{
-                  background: plan.highlight
-                    ? 'rgba(139,92,246,0.06)'
-                    : 'rgba(255,255,255,0.015)',
-                  border: plan.highlight
-                    ? '1px solid rgba(139,92,246,0.3)'
-                    : '1px solid rgba(255,255,255,0.06)',
-                  boxShadow: plan.highlight
-                    ? '0 0 40px rgba(139,92,246,0.08), 0 0 80px rgba(139,92,246,0.03)'
-                    : 'none',
+                  background: plan.highlight ? 'rgba(139,92,246,0.06)' : 'rgba(255,255,255,0.015)',
+                  border: plan.highlight ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.06)',
+                  boxShadow: plan.highlight ? '0 0 40px rgba(139,92,246,0.08), 0 0 80px rgba(139,92,246,0.03)' : 'none',
                 }}>
-                {/* Badge */}
                 {plan.highlight && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold"
@@ -589,8 +801,6 @@ export default function LandingPage() {
                     </span>
                   </div>
                 )}
-
-                {/* Header */}
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-4">
                     {plan.highlight
@@ -616,11 +826,7 @@ export default function LandingPage() {
                   </div>
                   <p className="text-sm text-white/25">{plan.desc}</p>
                 </div>
-
-                {/* Divider */}
                 <div className="mb-6" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }} />
-
-                {/* Features */}
                 <ul className="space-y-3 mb-8 flex-1">
                   {plan.features.map((f, fi) => (
                     <li key={fi} className="flex items-start gap-2.5 text-sm" style={{ color: plan.highlight ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.3)' }}>
@@ -629,13 +835,9 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-
-                {/* CTA - always at bottom */}
                 <a href="/get" className="group inline-flex items-center justify-center gap-2 w-full text-sm font-bold transition-all"
                   style={{
-                    background: plan.highlight
-                      ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)'
-                      : 'rgba(255,255,255,0.05)',
+                    background: plan.highlight ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)' : 'rgba(255,255,255,0.05)',
                     color: plan.highlight ? 'white' : 'rgba(255,255,255,0.4)',
                     padding: '13px 24px',
                     borderRadius: '12px',
