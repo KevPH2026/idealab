@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { ArrowRight, Sparkles, Zap, Check, Gift, Crown, Eye, Palette, LayoutGrid, Smartphone, Monitor, Camera, Video, Upload, Loader2, Download, AlertCircle, ImagePlus, X } from 'lucide-react';
+import { Sparkles, Zap, Check, Download, AlertCircle, ImagePlus, X } from 'lucide-react';
 
 const SCENES = [
   { label: '晨间生活', desc: 'lifestyle morning routine, natural light' },
@@ -24,6 +24,18 @@ const PLATFORM_LABELS: Record<string, string> = {
   '3:2': 'Landscape',
 };
 
+// Demo images for preview mode
+const DEMO_IMAGES = [
+  { url: '/demo/beauty_01.webp', platform: 'IG Feed', scene: '晨间生活', ratio: '1:1' },
+  { url: '/demo/beauty_02.webp', platform: 'FB / Google', scene: '产品平铺', ratio: '16:9' },
+  { url: '/demo/beauty_03.webp', platform: 'Story / TikTok', scene: '开箱惊喜', ratio: '9:16' },
+  { url: '/demo/beauty_04.webp', platform: 'Story / TikTok', scene: '使用对比', ratio: '9:16' },
+  { url: '/demo/tech_01.webp', platform: 'IG Feed', scene: '极简产品', ratio: '1:1' },
+  { url: '/demo/tech_02.webp', platform: 'Story / TikTok', scene: '户外场景', ratio: '9:16' },
+  { url: '/demo/tech_03.webp', platform: 'FB / Google', scene: '产品平铺', ratio: '16:9' },
+  { url: '/demo/tech_06.webp', platform: 'FB / Google', scene: '户外黄金时段', ratio: '16:9' },
+];
+
 export default function GeneratePage() {
   const [step, setStep] = useState<'form' | 'generating' | 'result'>('form');
   const [brandName, setBrandName] = useState('');
@@ -34,9 +46,7 @@ export default function GeneratePage() {
   const [generatedImages, setGeneratedImages] = useState<Array<{ url: string; platform: string; scene: string; ratio: string }>>([]);
   const [error, setError] = useState('');
   const [progress, setProgress] = useState(0);
-  const [taskId, setTaskId] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -63,34 +73,6 @@ export default function GeneratePage() {
     );
   };
 
-  const pollTask = async (tid: string) => {
-    try {
-      const res = await fetch(`/api/adforge?taskId=${tid}`);
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || '查询任务失败');
-        setStep('form');
-        return;
-      }
-
-      setProgress(Math.round((data.completed / data.total) * 100));
-
-      if (data.status === 'completed') {
-        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-        setGeneratedImages(data.images || []);
-        setStep('result');
-      } else if (data.status === 'failed') {
-        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-        setError(data.error || '生成失败');
-        setStep('form');
-      }
-      // pending/generating: continue polling
-    } catch (err) {
-      console.error('Poll error:', err);
-    }
-  };
-
   const generate = async () => {
     if (!brandName.trim() || !sellingPoint.trim()) {
       setError('品牌名和卖点必填');
@@ -106,45 +88,30 @@ export default function GeneratePage() {
     setGeneratedImages([]);
     setProgress(0);
 
-    try {
-      const res = await fetch('/api/adforge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          brandName,
-          sellingPoint,
-          targetCountry,
-          referenceImage,
-          selectedScenes,
-        }),
+    // Demo mode: simulate generation with progress
+    const results: Array<{ url: string; platform: string; scene: string; ratio: string }> = [];
+
+    for (let i = 0; i < selectedScenes.length; i++) {
+      const sceneIdx = selectedScenes[i];
+      setProgress(Math.round(((i + 1) / selectedScenes.length) * 100));
+
+      // Use demo image mapped to scene
+      const demoImg = DEMO_IMAGES[sceneIdx % DEMO_IMAGES.length];
+      results.push({
+        url: demoImg.url,
+        platform: PLATFORM_LABELS[ASPECT_RATIOS[sceneIdx]] || demoImg.platform,
+        scene: SCENES[sceneIdx].label,
+        ratio: ASPECT_RATIOS[sceneIdx],
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || '创建任务失败');
-        setStep('form');
-        return;
-      }
-
-      const tid = data.taskId;
-      setTaskId(tid);
-
-      // Start polling every 5 seconds
-      pollIntervalRef.current = setInterval(() => pollTask(tid), 5000);
-      // Immediate first poll
-      pollTask(tid);
-    } catch (err) {
-      setError('网络错误，请重试');
-      setStep('form');
+      // Simulate delay for realistic feel
+      await new Promise(r => setTimeout(r, 800));
     }
-  };
 
-  useEffect(() => {
-    return () => {
-      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-    };
-  }, []);
+    setProgress(100);
+    setGeneratedImages(results);
+    setStep('result');
+  };
 
   const downloadImage = (url: string, filename: string) => {
     const a = document.createElement('a');
@@ -164,13 +131,12 @@ export default function GeneratePage() {
             <Sparkles className="w-8 h-8 text-white" />
           </div>
           <h2 className="text-2xl font-bold mb-2">AI正在生成素材...</h2>
-          <p className="text-white/40 mb-8">每张约50秒，后台异步处理中</p>
+          <p className="text-white/40 mb-8">预计需要 {selectedScenes.length} 秒，请稍候</p>
           <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden mb-4">
             <div className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all duration-500"
               style={{ width: `${progress}%` }} />
           </div>
           <p className="text-sm text-white/30">{progress}% · 已生成 {Math.round(progress / 100 * selectedScenes.length)}/{selectedScenes.length} 张</p>
-          <p className="text-xs text-white/15 mt-4">任务ID: {taskId}</p>
         </div>
       </div>
     );
@@ -295,7 +261,6 @@ export default function GeneratePage() {
           )}
 
           <div className="space-y-6">
-            {/* 品牌名 */}
             <div>
               <label className="block text-sm font-medium text-white/60 mb-2">品牌名称 *</label>
               <input
@@ -308,7 +273,6 @@ export default function GeneratePage() {
               />
             </div>
 
-            {/* 产品卖点 */}
             <div>
               <label className="block text-sm font-medium text-white/60 mb-2">产品卖点 *</label>
               <textarea
@@ -321,7 +285,6 @@ export default function GeneratePage() {
               />
             </div>
 
-            {/* 目标市场 */}
             <div>
               <label className="block text-sm font-medium text-white/60 mb-2">目标市场</label>
               <select
@@ -340,7 +303,6 @@ export default function GeneratePage() {
               </select>
             </div>
 
-            {/* 参考图上传 */}
             <div>
               <label className="block text-sm font-medium text-white/60 mb-2">品牌参考图（可选）</label>
               <input
@@ -365,7 +327,8 @@ export default function GeneratePage() {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="w-full py-8 rounded-xl flex flex-col items-center gap-2 transition-all hover:bg-white/[0.03]"
-                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.15)' }}>
+                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.15)' }}
+                >
                   <ImagePlus className="w-8 h-8 text-white/20" />
                   <span className="text-sm text-white/30">点击上传品牌参考图</span>
                   <span className="text-xs text-white/15">支持 JPG/PNG，最大 5MB</span>
@@ -373,7 +336,6 @@ export default function GeneratePage() {
               )}
             </div>
 
-            {/* 场景选择 */}
             <div>
               <label className="block text-sm font-medium text-white/60 mb-3">选择生成场景 *</label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -386,7 +348,8 @@ export default function GeneratePage() {
                       background: selectedScenes.includes(i) ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.03)',
                       border: selectedScenes.includes(i) ? '1px solid rgba(139,92,246,0.4)' : '1px solid rgba(255,255,255,0.06)',
                       color: selectedScenes.includes(i) ? 'rgba(196,181,253,0.9)' : 'rgba(255,255,255,0.3)',
-                    }}>
+                    }}
+                  >
                     {selectedScenes.includes(i) && (
                       <div className="absolute top-1.5 right-1.5">
                         <Check className="w-3 h-3 text-violet-400" />
@@ -397,10 +360,9 @@ export default function GeneratePage() {
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-white/20 mt-2">已选 {selectedScenes.length} 个场景 · 预计耗时 {selectedScenes.length * 50} 秒</p>
+              <p className="text-xs text-white/20 mt-2">已选 {selectedScenes.length} 个场景 · 预计耗时 {selectedScenes.length} 秒</p>
             </div>
 
-            {/* 生成按钮 */}
             <button
               onClick={generate}
               disabled={false}
@@ -408,7 +370,8 @@ export default function GeneratePage() {
               style={{
                 background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
                 boxShadow: '0 0 30px rgba(139,92,246,0.3)',
-              }}>
+              }}
+            >
               <span className="flex items-center justify-center gap-2">
                 <Zap className="w-4 h-4" />
                 开始生成素材
