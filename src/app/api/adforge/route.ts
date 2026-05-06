@@ -8,7 +8,6 @@ const NOVART_API_KEY = process.env.NOVART_API_KEY || '';
 const NOVART_BASE_URL = process.env.NOVART_BASE_URL || 'https://www.novartspace.art';
 const TASK_DIR = '/tmp/100x-tasks';
 
-// Ensure task directory exists
 if (!fs.existsSync(TASK_DIR)) {
   fs.mkdirSync(TASK_DIR, { recursive: true });
 }
@@ -240,9 +239,8 @@ async function runGeneration(taskId: string, brandName: string, sellingPoint: st
 
     try {
       const result = await generate(prompt, aspectRatio);
-        if (result) {
+      if (result) {
         let imageUrl = result.imageData;
-        // Try to download and convert to base64 for direct frontend display
         if (!imageUrl && result.downloadUrl) {
           for (let dlAttempt = 0; dlAttempt < 3; dlAttempt++) {
             try {
@@ -254,7 +252,7 @@ async function runGeneration(taskId: string, brandName: string, sellingPoint: st
                 const buf = Buffer.from(await imgRes.arrayBuffer());
                 const ct = imgRes.headers.get('content-type') || 'image/png';
                 imageUrl = `data:${ct};base64,${buf.toString('base64')}`;
-                break; // Success, exit retry loop
+                break;
               }
               console.error(`[TASK ${taskId}] Download attempt ${dlAttempt + 1} failed: ${imgRes.status}`);
             } catch (e) {
@@ -262,7 +260,6 @@ async function runGeneration(taskId: string, brandName: string, sellingPoint: st
             }
             await new Promise(r => setTimeout(r, 2000 * (dlAttempt + 1)));
           }
-          // If all downloads failed, use the raw URL (frontend may not be able to display it)
           if (!imageUrl) {
             imageUrl = result.downloadUrl;
           }
@@ -312,8 +309,14 @@ export async function POST(req: NextRequest) {
     completed: 0,
   });
 
-  // Fire-and-forget: start generation in background
-  runGeneration(taskId, brandName, sellingPoint, targetCountry || 'US', styleContext || '', referenceImage || null, scenes);
+  // Use waitUntil to run generation in background after response is sent
+  const { waitUntil } = req as any;
+  if (waitUntil) {
+    waitUntil(runGeneration(taskId, brandName, sellingPoint, targetCountry || 'US', styleContext || '', referenceImage || null, scenes));
+  } else {
+    // Fallback: start generation without waitUntil (may be cut off by timeout)
+    runGeneration(taskId, brandName, sellingPoint, targetCountry || 'US', styleContext || '', referenceImage || null, scenes);
+  }
 
   return NextResponse.json({ taskId, status: 'pending', total: scenes.length });
 }
