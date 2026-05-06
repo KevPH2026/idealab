@@ -61,7 +61,7 @@ async function resolveReferenceImage(ref: string): Promise<{ mimeType: string; d
 }
 
 /**
- * 无参考图：OpenAI兼容端点 (nova-image-pro-flex, 最快28-47秒)
+ * 无参考图：OpenAI兼容端点 (nova-image-pro-flex, 只支持url格式)
  */
 async function generateFast(
   prompt: string,
@@ -83,7 +83,7 @@ async function generateFast(
           prompt,
           n: 1,
           size,
-          response_format: 'b64_json',
+          response_format: 'url',
         }),
         signal: AbortSignal.timeout(120_000),
       });
@@ -91,17 +91,15 @@ async function generateFast(
       if (!res.ok) {
         const err = await res.text();
         console.error(`[ADFORGE-FAST] ${res.status}:`, err.slice(0, 200));
-        if (res.status === 401 || res.status === 402) return null; // key/余额问题不重试
+        if (res.status === 401 || res.status === 402) return null;
         await new Promise(r => setTimeout(r, 3000 * (attempt + 1)));
         continue;
       }
 
       const data = await res.json();
-      const b64 = data?.data?.[0]?.b64_json;
       const url = data?.data?.[0]?.url;
 
       if (url) return { imageData: '', downloadUrl: url };
-      if (b64) return { imageData: `data:image/png;base64,${b64}` };
 
       console.error('[ADFORGE-FAST] No image in response:', JSON.stringify(data).slice(0, 200));
     } catch (err: any) {
@@ -113,7 +111,7 @@ async function generateFast(
 }
 
 /**
- * 有参考图：原生Gemini端点 (nova-image-pro, 支持inlineData)
+ * 有参考图：原生Gemini端点 (nova-image-pro, 支持inlineData + URL回传)
  */
 async function generateWithRef(
   prompt: string,
