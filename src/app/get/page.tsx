@@ -378,7 +378,7 @@ export default function GeneratePage() {
             {/* 生成按钮 */}
             <button
               onClick={generate}
-              disabled={!brandName.trim() || !sellingPoint.trim() || selectedScenes.length === 0}
+              disabled={false}
               className="w-full py-4 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               style={{
                 background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
