@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowRight, Sparkles, Clock, Zap, Check, Lock, Gift, Crown, Eye, Palette, LayoutGrid, Smartphone, Monitor, Camera, Video } from 'lucide-react';
+import { ArrowRight, Sparkles, Clock, Zap, Check, Gift, Crown, Eye, Palette, LayoutGrid, Smartphone, Monitor, Camera, Video } from 'lucide-react';
 
 const BRAND_SHOWCASES = [
   {
@@ -121,10 +121,10 @@ const BRAND_SHOWCASES = [
 ];
 
 const PAIN_POINTS = [
-  { icon: '⏰', title: '一张素材做3天', desc: '找参考、写brief、等设计、改稿、再改稿... 上新节奏被素材拖垮' },
-  { icon: '💸', title: '外包一张¥300起', desc: '按月结算动辄上万，旺季加急还要翻倍。小公司根本烧不起' },
-  { icon: '🎨', title: '品味和效率不可兼得', desc: '模板工具生成的素材千篇一律，有调性的设计又慢又贵' },
-  { icon: '📱', title: '多平台尺寸搞到崩溃', desc: 'IG要1:1，Story要9:16，FB要16:9... 一张图改8个版本' },
+  { icon: '⏰', title: '一张素材做3天', desc: '找参考、写brief、等设计、改稿...上新节奏被素材拖垮' },
+  { icon: '💸', title: '外包一张¥300起', desc: '按月结算动辄上万，旺季加急还要翻倍' },
+  { icon: '🎨', title: '模板工具千篇一律', desc: 'Canva生成的素材没有品牌感，用户一眼看出是模板' },
+  { icon: '📱', title: '多平台尺寸改到崩溃', desc: 'IG要1:1，Story要9:16，FB要16:9，一张图改8个版本' },
 ];
 
 const TESTIMONIALS = [
@@ -147,38 +147,9 @@ const TESTIMONIALS = [
 
 export default function DemoPage() {
   const [activeBrand, setActiveBrand] = useState(0);
-  const [demoStep, setDemoStep] = useState(0);
-  const [showWaitlist, setShowWaitlist] = useState(false);
-  const [name, setName] = useState('');
-  const [brand, setBrand] = useState('');
-  const [contact, setContact] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [hoveredImage, setHoveredImage] = useState<string | null>(null);
 
   const showcase = BRAND_SHOWCASES[activeBrand];
-
-  useEffect(() => {
-    if (demoStep >= 3) return;
-    const timer = setTimeout(() => setDemoStep(s => s + 1), 2000);
-    return () => clearTimeout(timer);
-  }, [demoStep]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !contact.trim()) return;
-    setLoading(true);
-    try {
-      const res = await fetch('/api/waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, brand, contact }),
-      });
-      if (res.ok) setSubmitted(true);
-      else alert('提交失败，请稍后重试');
-    } catch { alert('网络错误，请稍后重试'); }
-    finally { setLoading(false); }
-  };
 
   return (
     <div className="min-h-screen bg-[#050507] text-white selection:bg-violet-500/30 overflow-x-hidden">
@@ -210,8 +181,8 @@ export default function DemoPage() {
           <div className="relative max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium mb-8"
               style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', color: 'rgba(196,181,253,0.9)' }}>
-              <Lock className="w-3 h-3" />
-              产品内测中 · 预约首批体验资格
+              <Sparkles className="w-3 h-3" />
+              AI生成广告素材 · 多平台一键覆盖
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.1] mb-6">
               <span className="text-white">DTC品牌做素材</span>
@@ -227,14 +198,14 @@ export default function DemoPage() {
               <span className="text-white/15 text-sm">品牌DNA注入 · 多平台一键生成 · 商用级品质</span>
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button onClick={() => setShowWaitlist(true)}
+              <a href="/get"
                 className="group inline-flex items-center gap-2.5 text-sm font-bold text-white transition-all"
                 style={{ background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', boxShadow: '0 0 30px rgba(139,92,246,0.3)', padding: '14px 36px', borderRadius: '14px' }}>
                 <Gift className="w-4 h-4" />
-                预约首批体验 · 每天免费100张
+                免费生成素材
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-              </button>
-              <span className="text-xs text-white/15">已有 127 位卖家预约</span>
+              </a>
+              <span className="text-xs text-white/15">注册即送 100 张/天</span>
             </div>
           </div>
         </section>
@@ -262,7 +233,7 @@ export default function DemoPage() {
           </div>
         </section>
 
-        {/* Brand Showcase — 核心展示区块 */}
+        {/* Brand Showcase */}
         <section className="py-16 px-6" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-10">
@@ -276,7 +247,7 @@ export default function DemoPage() {
               {BRAND_SHOWCASES.map((b, i) => (
                 <button
                   key={i}
-                  onClick={() => { setActiveBrand(i); setDemoStep(0); }}
+                  onClick={() => { setActiveBrand(i); }}
                   className="px-4 py-2 rounded-xl text-xs font-medium transition-all"
                   style={{
                     background: activeBrand === i ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.03)',
@@ -331,7 +302,7 @@ export default function DemoPage() {
                 </div>
               </div>
 
-              {/* 素材矩阵 — 核心展示 */}
+              {/* 素材矩阵 */}
               <div className="p-6 md:p-8">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
@@ -354,27 +325,20 @@ export default function DemoPage() {
                         style={{ border: '1px solid rgba(255,255,255,0.06)' }}
                         onMouseEnter={() => setHoveredImage(`${activeBrand}-${i}`)}
                         onMouseLeave={() => setHoveredImage(null)}>
-                        {/* 图片 */}
                         <div className="relative aspect-square">
                           <img src={platform.image} alt={platform.scene} 
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                          
-                          {/* 悬停遮罩 */}
                           <div className={`absolute inset-0 flex flex-col justify-end p-3 transition-opacity duration-300 ${
                             hoveredImage === `${activeBrand}-${i}` ? 'opacity-100' : 'opacity-0'
                           }`} style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, transparent 100%)' }}>
                             <p className="text-[11px] font-bold text-white mb-0.5">{platform.scene}</p>
                             <p className="text-[9px] text-white/40">AI生成 · 未修图</p>
                           </div>
-
-                          {/* 平台标签 */}
                           <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2 py-1 rounded-lg"
                             style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.08)' }}>
                             <Icon className="w-3 h-3 text-white/60" />
                             <span className="text-[10px] font-medium text-white/70">{platform.name}</span>
                           </div>
-
-                          {/* 尺寸标签 */}
                           <div className="absolute top-3 right-3 px-1.5 py-0.5 rounded text-[9px] font-bold text-white/50"
                             style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
                             {platform.ratio}
@@ -397,14 +361,13 @@ export default function DemoPage() {
               </div>
             </div>
 
-            {/* 切换提示 */}
             <p className="text-center text-xs text-white/15 mt-6">
               点击上方品类标签，查看不同行业的品牌素材方案
             </p>
           </div>
         </section>
 
-        {/* 生成流程演示 */}
+        {/* 生成流程 */}
         <section className="py-16 px-6" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-10">
@@ -474,47 +437,19 @@ export default function DemoPage() {
               style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}>
               <Crown className="w-8 h-8 text-violet-400" />
             </div>
-            <h2 className="text-3xl md:text-4xl font-black text-white mb-4">成为首批体验用户</h2>
-            <p className="text-white/25 mb-2">产品正式上线后，每天免费生成100张商用级素材</p>
-            <p className="text-xs text-white/15 mb-8">限时福利 · 仅限前500名预约用户</p>
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-4">
+              开始生成你的品牌素材
+            </h2>
+            <p className="text-white/25 mb-2">注册即送每天100张免费额度</p>
+            <p className="text-xs text-white/15 mb-8">无需信用卡 · 随时取消</p>
 
-            {!showWaitlist ? (
-              <button onClick={() => setShowWaitlist(true)}
-                className="group inline-flex items-center gap-2.5 text-sm font-bold text-white transition-all"
-                style={{ background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', boxShadow: '0 0 40px rgba(139,92,246,0.35)', padding: '16px 44px', borderRadius: '16px' }}>
-                <Gift className="w-4 h-4" />
-                立即预约 · 每天免费100张
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </button>
-            ) : !submitted ? (
-              <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-3 text-left">
-                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="你的名字 *" required
-                  className="w-full h-11 px-4 rounded-xl text-white placeholder:text-white/15 text-sm focus:outline-none"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }} />
-                <input type="text" value={brand} onChange={e => setBrand(e.target.value)} placeholder="品牌名称"
-                  className="w-full h-11 px-4 rounded-xl text-white placeholder:text-white/15 text-sm focus:outline-none"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }} />
-                <input type="text" value={contact} onChange={e => setContact(e.target.value)} placeholder="手机号或邮箱 *" required
-                  className="w-full h-11 px-4 rounded-xl text-white placeholder:text-white/15 text-sm focus:outline-none"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }} />
-                <button type="submit" disabled={loading}
-                  className="w-full h-11 rounded-xl text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-30 transition-all"
-                  style={{ background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', boxShadow: '0 0 20px rgba(139,92,246,0.3)' }}>
-                  {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    : <>确认预约 <ArrowRight className="w-4 h-4" /></>}
-                </button>
-              </form>
-            ) : (
-              <div className="rounded-2xl p-8 text-center"
-                style={{ background: 'rgba(139,92,246,0.04)', border: '1px solid rgba(139,92,246,0.2)' }}>
-                <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
-                  style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}>
-                  <Check className="w-7 h-7 text-violet-400" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">预约成功！</h3>
-                <p className="text-sm text-white/30">上线后第一时间通知你，记得查收邮件/短信</p>
-              </div>
-            )}
+            <a href="/get"
+              className="group inline-flex items-center gap-2.5 text-sm font-bold text-white transition-all"
+              style={{ background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', boxShadow: '0 0 40px rgba(139,92,246,0.35)', padding: '16px 44px', borderRadius: '16px' }}>
+              <Gift className="w-4 h-4" />
+              免费开始生成
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </a>
           </div>
         </section>
 
