@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowRight, Sparkles, ChevronLeft, ChevronRight, Check, Zap, Crown, Clock, Mail, Phone, User, Building2, Gift } from 'lucide-react';
+import { ArrowRight, Sparkles, ChevronLeft, ChevronRight, Check, Zap, Crown } from 'lucide-react';
 
 type Lang = 'zh' | 'en';
 
@@ -62,18 +62,8 @@ const T = {
         highlight: false,
       },
     ],
-    countdownTitle: '产品上线倒计时',
-    countdownSub: 'April 29 at 12:12 — Official Launch',
-    waitlistTitle: '加入 Waitlist',
-    waitlistSub: '成为第一批用户，每天免费生成100张素材',
-    waitlistName: '你的名字',
-    waitlistBrand: '独立站/店铺链接',
-    waitlistContact: '手机号或邮箱',
-    waitlistSubmit: '立即预约',
-    waitlistSuccess: '预约成功！上线后第一时间通知你',
-    waitlistBenefit1: '每天免费100张',
-    waitlistBenefit2: '优先体验新功能',
-    waitlistBenefit3: '专属客服支持',
+    ctaMain: '开始生成',
+    ctaSub2: '已上线 · 免费使用',
   },
   en: {
     badge: 'DTC Ad Creatives · 100x Efficiency',
@@ -131,56 +121,15 @@ const T = {
         highlight: false,
       },
     ],
-    countdownTitle: 'Launch Countdown',
-    countdownSub: 'Going live April 29 at 12:12',
-    waitlistTitle: 'Join Waitlist',
-    waitlistSub: 'Be among the first. 100 free generations per day.',
-    waitlistName: 'Your Name',
-    waitlistBrand: 'Store/Website URL',
-    waitlistContact: 'Phone or Email',
-    waitlistSubmit: 'Reserve My Spot',
-    waitlistSuccess: "You're on the list! We'll notify you at launch.",
-    waitlistBenefit1: '100 free/day',
-    waitlistBenefit2: 'Early feature access',
-    waitlistBenefit3: 'Priority support',
+    ctaMain: 'Generate Now',
+    ctaSub2: 'Live now · Free to use',
   },
 };
 
-// ─── Countdown Timer ──────────────────────────────────────────────────────────
+// ─── CTA Section ──────────────────────────────────────────────────────────────
 
-function CountdownTimer({ lang }: { lang: Lang }) {
+function CTASection({ lang }: { lang: Lang }) {
   const t = T[lang];
-  const [timeLeft, setTimeLeft] = useState({ days: 3, hours: 0, minutes: 0, seconds: 0 });
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    // Target launch: 2026-04-29 12:12 (Beijing Time)
-    const target = new Date('2026-04-29T12:12:00+08:00');
-
-    const update = () => {
-      const now = new Date();
-      const diff = target.getTime() - now.getTime();
-      if (diff <= 0) {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        return;
-      }
-      setTimeLeft({
-        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
-        seconds: Math.floor((diff % (1000 * 60)) / 1000),
-      });
-    };
-
-    update();
-    const timer = setInterval(update, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  if (!mounted) return null;
-
-  const pad = (n: number) => String(n).padStart(2, '0');
 
   return (
     <div className="relative rounded-2xl p-8 md:p-10 text-center"
@@ -196,171 +145,28 @@ function CountdownTimer({ lang }: { lang: Lang }) {
       <div className="relative">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium mb-6"
           style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', color: 'rgba(196,181,253,0.9)' }}>
-          <Clock className="w-3.5 h-3.5" />
-          {t.countdownSub}
+          <Zap className="w-3.5 h-3.5" />
+          {t.ctaSub2}
         </div>
 
-        <h2 className="text-2xl md:text-3xl font-black text-white mb-8">{t.countdownTitle}</h2>
+        <h2 className="text-2xl md:text-3xl font-black text-white mb-4">
+          {lang === 'zh' ? '现在就开始生成' : 'Start Generating Now'}
+        </h2>
 
-        <div className="flex items-center justify-center gap-3 md:gap-4">
-          {[
-            { value: timeLeft.days, label: lang === 'zh' ? '天' : 'DAYS' },
-            { value: timeLeft.hours, label: lang === 'zh' ? '时' : 'HRS' },
-            { value: timeLeft.minutes, label: lang === 'zh' ? '分' : 'MIN' },
-            { value: timeLeft.seconds, label: lang === 'zh' ? '秒' : 'SEC' },
-          ].map((item, i) => (
-            <div key={i} className="flex flex-col items-center">
-              <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl flex items-center justify-center mb-2"
-                style={{
-                  background: 'rgba(5,5,7,0.6)',
-                  border: '1px solid rgba(139,92,246,0.2)',
-                  boxShadow: '0 0 20px rgba(139,92,246,0.1), inset 0 1px 0 rgba(255,255,255,0.05)',
-                }}>
-                <span className="text-2xl md:text-3xl font-black tabular-nums"
-                  style={{ color: 'rgba(196,181,253,0.95)' }}>
-                  {pad(item.value)}
-                </span>
-              </div>
-              <span className="text-[10px] text-white/25 font-medium tracking-wider">{item.label}</span>
-            </div>
-          ))}
-        </div>
+        <p className="text-sm text-white/25 mb-8">
+          {lang === 'zh'
+            ? '无需等待，立即体验AI生成品牌素材'
+            : 'No waiting. Experience AI-powered brand creatives now.'}
+        </p>
+
+        <a href="/get"
+          className="group inline-flex items-center gap-2.5 text-sm font-bold text-white transition-all"
+          style={{ background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', boxShadow: '0 0 30px rgba(139,92,246,0.3)', padding: '14px 36px', borderRadius: '14px' }}>
+          <Sparkles className="w-4 h-4" />
+          {t.ctaMain}
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+        </a>
       </div>
-    </div>
-  );
-}
-
-// ─── Waitlist Form ────────────────────────────────────────────────────────────
-
-function WaitlistForm({ lang }: { lang: Lang }) {
-  const t = T[lang];
-  const [name, setName] = useState('');
-  const [brand, setBrand] = useState('');
-  const [contact, setContact] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !contact.trim()) return;
-    setLoading(true);
-
-    try {
-      const res = await fetch('/api/waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, brand, contact }),
-      });
-      if (res.ok) {
-        setSubmitted(true);
-      } else {
-        const data = await res.json().catch(() => ({}));
-        alert(data.error || '提交失败，请稍后重试');
-      }
-    } catch {
-      alert('网络错误，请稍后重试');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (submitted) {
-    return (
-      <div className="rounded-2xl p-8 md:p-10 text-center"
-        style={{
-          background: 'rgba(139,92,246,0.04)',
-          border: '1px solid rgba(139,92,246,0.2)',
-        }}>
-        <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
-          style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}>
-          <Check className="w-7 h-7 text-violet-400" />
-        </div>
-        <h3 className="text-xl font-bold text-white mb-2">{t.waitlistSuccess}</h3>
-        <p className="text-sm text-white/30">100x Team</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-2xl p-6 md:p-8"
-      style={{
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.06)',
-      }}>
-      <div className="text-center mb-6">
-        <h3 className="text-xl md:text-2xl font-bold text-white mb-2">{t.waitlistTitle}</h3>
-        <p className="text-sm text-white/30">{t.waitlistSub}</p>
-      </div>
-
-      {/* Benefits */}
-      <div className="flex items-center justify-center gap-4 mb-6">
-        {[
-          { icon: Gift, text: t.waitlistBenefit1 },
-          { icon: Zap, text: t.waitlistBenefit2 },
-          { icon: Crown, text: t.waitlistBenefit3 },
-        ].map((b, i) => (
-          <div key={i} className="flex items-center gap-1.5 text-[11px] text-white/30">
-            <b.icon className="w-3.5 h-3.5 text-violet-400/60" />
-            {b.text}
-          </div>
-        ))}
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="relative">
-          <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/15" />
-          <input
-            type="text"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder={t.waitlistName}
-            required
-            className="w-full h-11 pl-10 pr-4 rounded-xl text-white placeholder:text-white/15 text-sm focus:outline-none transition-all"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-          />
-        </div>
-        <div className="relative">
-          <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/15" />
-          <input
-            type="text"
-            value={brand}
-            onChange={e => setBrand(e.target.value)}
-            placeholder={t.waitlistBrand}
-            required
-            className="w-full h-11 pl-10 pr-4 rounded-xl text-white placeholder:text-white/15 text-sm focus:outline-none transition-all"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-          />
-        </div>
-        <div className="relative">
-          <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/15" />
-          <input
-            type="text"
-            value={contact}
-            onChange={e => setContact(e.target.value)}
-            placeholder={t.waitlistContact}
-            required
-            className="w-full h-11 pl-10 pr-4 rounded-xl text-white placeholder:text-white/15 text-sm focus:outline-none transition-all"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading || !name.trim() || !brand.trim() || !contact.trim()}
-          className="w-full h-11 rounded-xl text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-30 transition-all"
-          style={{
-            background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
-            boxShadow: '0 0 20px rgba(139,92,246,0.3)',
-          }}>
-          {loading ? (
-            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          ) : (
-            <>
-              {t.waitlistSubmit}
-              <ArrowRight className="w-4 h-4" />
-            </>
-          )}
-        </button>
-      </form>
     </div>
   );
 }
@@ -709,16 +515,6 @@ export default function LandingPage() {
               </div>
               {t.ctaSub}
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Countdown + Waitlist ─── */}
-      <section className="px-6 pb-20">
-        <div className="max-w-4xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-6">
-            <CountdownTimer lang={lang} />
-            <WaitlistForm lang={lang} />
           </div>
         </div>
       </section>
