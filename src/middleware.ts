@@ -13,10 +13,10 @@ export function middleware(req: NextRequest) {
       return NextResponse.rewrite(url);
     }
 
-    // /get → adforge tool page
+    // /get → generate tool page (真正的素材生成)
     if (url.pathname === '/get') {
-      url.pathname = '/adforge';
-      return NextResponse.rewrite(url);
+      url.pathname = '/get';
+      return NextResponse.next();
     }
 
     // Only allow specific paths, everything else → landing
