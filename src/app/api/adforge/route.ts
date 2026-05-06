@@ -100,8 +100,8 @@ async function generateFast(
       const b64 = data?.data?.[0]?.b64_json;
       const url = data?.data?.[0]?.url;
 
-      if (b64) return { imageData: `data:image/png;base64,${b64}` };
       if (url) return { imageData: '', downloadUrl: url };
+      if (b64) return { imageData: `data:image/png;base64,${b64}` };
 
       console.error('[ADFORGE-FAST] No image in response:', JSON.stringify(data).slice(0, 200));
     } catch (err: any) {
