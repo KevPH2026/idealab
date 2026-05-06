@@ -244,9 +244,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `场景"${scene.label}"生成失败` }, { status: 500 });
     }
 
+    // If we have imageData (base64), return it directly. Otherwise proxy download.
+    let imageUrl = result.imageData;
+    if (!imageUrl && result.downloadUrl) {
+      try {
+        const imgRes = await fetch(result.downloadUrl, {
+          headers: { 'Authorization': `Bearer ${NOVART_API_KEY}` },
+          signal: AbortSignal.timeout(30000),
+        });
+        if (imgRes.ok) {
+          const buf = Buffer.from(await imgRes.arrayBuffer());
+          const ct = imgRes.headers.get('content-type') || 'image/png';
+          imageUrl = `data:${ct};base64,${buf.toString('base64')}`;
+        } else {
+          imageUrl = result.downloadUrl; // fallback to raw URL
+        }
+      } catch (e) {
+        console.error('[ADFORGE] Proxy download failed:', e);
+        imageUrl = result.downloadUrl;
+      }
+    }
+
     return NextResponse.json({
       image: {
-        url: result.downloadUrl || result.imageData,
+        url: imageUrl,
         platform: getPlatformLabel(aspectRatio),
         scene: scene.label,
       },
