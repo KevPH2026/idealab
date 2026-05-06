@@ -1,18 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 
 export const maxDuration = 10;
 
 const NOVART_API_KEY = process.env.NOVART_API_KEY || '';
 const NOVART_BASE_URL = process.env.NOVART_BASE_URL || 'https://www.novartspace.art';
+const TASK_DIR = '/tmp/100x-tasks';
 
-// In-memory task store (use KV/Redis in production)
-const taskStore = new Map<string, {
-  status: 'pending' | 'generating' | 'completed' | 'failed';
-  images: Array<{ url: string; platform: string; scene: string; ratio: string }>;
-  error?: string;
-  total: number;
-  completed: number;
-}>();
+// Ensure task directory exists
+if (!fs.existsSync(TASK_DIR)) {
+  fs.mkdirSync(TASK_DIR, { recursive: true });
+}
+
+function getTaskPath(taskId: string) {
+  return path.join(TASK_DIR, `${taskId}.json`);
+}
+
+function readTask(taskId: string) {
+  try {
+    const data = fs.readFileSync(getTaskPath(taskId), 'utf-8');
+    return JSON.parse(data);
+  } catch {
+    return null;
+  }
+}
+
+function writeTask(taskId: string, data: any) {
+  fs.writeFileSync(getTaskPath(taskId), JSON.stringify(data), 'utf-8');
+}
 
 const SCENES = [
   { desc: 'lifestyle morning routine, natural light, clean aesthetic', label: '晨间生活' },
@@ -211,8 +227,10 @@ async function runGeneration(taskId: string, brandName: string, sellingPoint: st
     ? (prompt: string, ratio: string) => generateWithRef(prompt, ratio, refData!)
     : (prompt: string, ratio: string) => generateFast(prompt, ratio);
 
-  const task = taskStore.get(taskId)!;
+  const task = readTask(taskId);
+  if (!task) return;
   task.status = 'generating';
+  writeTask(taskId, task);
 
   for (let i = 0; i < selectedScenes.length; i++) {
     const sceneIdx = selectedScenes[i];
@@ -222,22 +240,30 @@ async function runGeneration(taskId: string, brandName: string, sellingPoint: st
 
     try {
       const result = await generate(prompt, aspectRatio);
-      if (result) {
+        if (result) {
         let imageUrl = result.imageData;
+        // Try to download and convert to base64 for direct frontend display
         if (!imageUrl && result.downloadUrl) {
-          try {
-            const imgRes = await fetch(result.downloadUrl, {
-              headers: { 'Authorization': `Bearer ${NOVART_API_KEY}` },
-              signal: AbortSignal.timeout(30000),
-            });
-            if (imgRes.ok) {
-              const buf = Buffer.from(await imgRes.arrayBuffer());
-              const ct = imgRes.headers.get('content-type') || 'image/png';
-              imageUrl = `data:${ct};base64,${buf.toString('base64')}`;
-            } else {
-              imageUrl = result.downloadUrl;
+          for (let dlAttempt = 0; dlAttempt < 3; dlAttempt++) {
+            try {
+              const imgRes = await fetch(result.downloadUrl, {
+                headers: { 'Authorization': `Bearer ${NOVART_API_KEY}` },
+                signal: AbortSignal.timeout(30000),
+              });
+              if (imgRes.ok) {
+                const buf = Buffer.from(await imgRes.arrayBuffer());
+                const ct = imgRes.headers.get('content-type') || 'image/png';
+                imageUrl = `data:${ct};base64,${buf.toString('base64')}`;
+                break; // Success, exit retry loop
+              }
+              console.error(`[TASK ${taskId}] Download attempt ${dlAttempt + 1} failed: ${imgRes.status}`);
+            } catch (e) {
+              console.error(`[TASK ${taskId}] Download attempt ${dlAttempt + 1} error:`, e);
             }
-          } catch (e) {
+            await new Promise(r => setTimeout(r, 2000 * (dlAttempt + 1)));
+          }
+          // If all downloads failed, use the raw URL (frontend may not be able to display it)
+          if (!imageUrl) {
             imageUrl = result.downloadUrl;
           }
         }
@@ -249,6 +275,7 @@ async function runGeneration(taskId: string, brandName: string, sellingPoint: st
           ratio: aspectRatio,
         });
         task.completed++;
+        writeTask(taskId, task);
       }
     } catch (err) {
       console.error(`[TASK ${taskId}] Scene ${sceneIdx} failed:`, err);
@@ -259,6 +286,7 @@ async function runGeneration(taskId: string, brandName: string, sellingPoint: st
   if (task.images.length === 0) {
     task.error = '全部生成失败，请稍后重试';
   }
+  writeTask(taskId, task);
 }
 
 /** POST: 创建任务 */
@@ -277,7 +305,7 @@ export async function POST(req: NextRequest) {
   const scenes = selectedScenes || [0, 1, 2, 3];
   const taskId = `task_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-  taskStore.set(taskId, {
+  writeTask(taskId, {
     status: 'pending',
     images: [],
     total: scenes.length,
@@ -299,7 +327,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: '缺少taskId' }, { status: 400 });
   }
 
-  const task = taskStore.get(taskId);
+  const task = readTask(taskId);
   if (!task) {
     return NextResponse.json({ error: '任务不存在' }, { status: 404 });
   }
