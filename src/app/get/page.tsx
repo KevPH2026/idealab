@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ArrowRight, Sparkles, Zap, Check, Gift, Crown, Eye, Palette, LayoutGrid, Smartphone, Monitor, Camera, Video, Upload, Loader2, Download, AlertCircle, ImagePlus, X } from 'lucide-react';
 
 const SCENES = [
@@ -34,7 +34,9 @@ export default function GeneratePage() {
   const [generatedImages, setGeneratedImages] = useState<Array<{ url: string; platform: string; scene: string; ratio: string }>>([]);
   const [error, setError] = useState('');
   const [progress, setProgress] = useState(0);
+  const [taskId, setTaskId] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -61,6 +63,34 @@ export default function GeneratePage() {
     );
   };
 
+  const pollTask = async (tid: string) => {
+    try {
+      const res = await fetch(`/api/adforge?taskId=${tid}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || '查询任务失败');
+        setStep('form');
+        return;
+      }
+
+      setProgress(Math.round((data.completed / data.total) * 100));
+
+      if (data.status === 'completed') {
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        setGeneratedImages(data.images || []);
+        setStep('result');
+      } else if (data.status === 'failed') {
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        setError(data.error || '生成失败');
+        setStep('form');
+      }
+      // pending/generating: continue polling
+    } catch (err) {
+      console.error('Poll error:', err);
+    }
+  };
+
   const generate = async () => {
     if (!brandName.trim() || !sellingPoint.trim()) {
       setError('品牌名和卖点必填');
@@ -76,52 +106,45 @@ export default function GeneratePage() {
     setGeneratedImages([]);
     setProgress(0);
 
-    const results: Array<{ url: string; platform: string; scene: string; ratio: string }> = [];
+    try {
+      const res = await fetch('/api/adforge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brandName,
+          sellingPoint,
+          targetCountry,
+          referenceImage,
+          selectedScenes,
+        }),
+      });
 
-    for (let i = 0; i < selectedScenes.length; i++) {
-      const sceneIdx = selectedScenes[i];
-      setProgress(Math.round((i / selectedScenes.length) * 100));
+      const data = await res.json();
 
-      try {
-        const res = await fetch('/api/adforge', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            brandName,
-            sellingPoint,
-            targetCountry,
-            sceneIndex: sceneIdx,
-            referenceImage,
-          }),
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          console.error('Generation failed:', data.error);
-          continue;
-        }
-
-        if (data.image?.url) {
-          results.push({
-            url: data.image.url,
-            platform: data.image.platform || PLATFORM_LABELS[ASPECT_RATIOS[sceneIdx]] || 'Ad',
-            scene: data.image.scene || SCENES[sceneIdx].label,
-            ratio: ASPECT_RATIOS[sceneIdx],
-          });
-        }
-      } catch (err) {
-        console.error('Network error:', err);
+      if (!res.ok) {
+        setError(data.error || '创建任务失败');
+        setStep('form');
+        return;
       }
-    }
 
-    setProgress(100);
-    setGeneratedImages(results);
-    setStep(results.length > 0 ? 'result' : 'form');
-    if (results.length === 0) {
-      setError('生成失败，请重试');
+      const tid = data.taskId;
+      setTaskId(tid);
+
+      // Start polling every 5 seconds
+      pollIntervalRef.current = setInterval(() => pollTask(tid), 5000);
+      // Immediate first poll
+      pollTask(tid);
+    } catch (err) {
+      setError('网络错误，请重试');
+      setStep('form');
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
+  }, []);
 
   const downloadImage = (url: string, filename: string) => {
     const a = document.createElement('a');
@@ -136,16 +159,18 @@ export default function GeneratePage() {
         <div className="fixed inset-0 pointer-events-none opacity-[0.12]"
           style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
         <div className="relative text-center max-w-md mx-auto px-6">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center mx-auto mb-6 animate-pulse">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center mx-auto mb-6 animate-pulse"
+            style={{ boxShadow: '0 0 30px rgba(139,92,246,0.3)' }}>
             <Sparkles className="w-8 h-8 text-white" />
           </div>
           <h2 className="text-2xl font-bold mb-2">AI正在生成素材...</h2>
-          <p className="text-white/40 mb-8">预计需要 {selectedScenes.length * 50} 秒，请稍候</p>
+          <p className="text-white/40 mb-8">每张约50秒，后台异步处理中</p>
           <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden mb-4">
             <div className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all duration-500"
               style={{ width: `${progress}%` }} />
           </div>
-          <p className="text-sm text-white/30">{progress}% · 已生成 {Math.floor(progress / 100 * selectedScenes.length)}/{selectedScenes.length} 张</p>
+          <p className="text-sm text-white/30">{progress}% · 已生成 {Math.round(progress / 100 * selectedScenes.length)}/{selectedScenes.length} 张</p>
+          <p className="text-xs text-white/15 mt-4">任务ID: {taskId}</p>
         </div>
       </div>
     );

@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const maxDuration = 180;
+export const maxDuration = 10;
 
 const NOVART_API_KEY = process.env.NOVART_API_KEY || '';
 const NOVART_BASE_URL = process.env.NOVART_BASE_URL || 'https://www.novartspace.art';
+
+// In-memory task store (use KV/Redis in production)
+const taskStore = new Map<string, {
+  status: 'pending' | 'generating' | 'completed' | 'failed';
+  images: Array<{ url: string; platform: string; scene: string; ratio: string }>;
+  error?: string;
+  total: number;
+  completed: number;
+}>();
 
 const SCENES = [
   { desc: 'lifestyle morning routine, natural light, clean aesthetic', label: '晨间生活' },
@@ -39,7 +48,6 @@ function getPlatformLabel(ratio: string): string {
   return map[ratio] || ratio;
 }
 
-/** 解析参考图为 base64 */
 async function resolveReferenceImage(ref: string): Promise<{ mimeType: string; data: string } | null> {
   if (ref.startsWith('data:')) {
     const match = ref.match(/^data:(image\/[^;]+);base64,(.+)$/);
@@ -60,13 +68,7 @@ async function resolveReferenceImage(ref: string): Promise<{ mimeType: string; d
   return null;
 }
 
-/**
- * 无参考图：OpenAI兼容端点 (nova-image-pro-flex, 只支持url格式)
- */
-async function generateFast(
-  prompt: string,
-  aspectRatio: string,
-): Promise<{ imageData: string; downloadUrl?: string } | null> {
+async function generateFast(prompt: string, aspectRatio: string): Promise<{ imageData: string; downloadUrl?: string } | null> {
   const size = SIZE_MAP[aspectRatio] || '1024x1024';
   const endpoint = `${NOVART_BASE_URL}/v1/images/generations`;
 
@@ -100,7 +102,6 @@ async function generateFast(
       const url = data?.data?.[0]?.url;
 
       if (url) {
-        // Download the image and convert to base64 so frontend can display it directly
         try {
           const imgRes = await fetch(url, {
             headers: { 'Authorization': `Bearer ${NOVART_API_KEY}` },
@@ -127,14 +128,7 @@ async function generateFast(
   return null;
 }
 
-/**
- * 有参考图：原生Gemini端点 (nova-image-pro, 支持inlineData + URL回传)
- */
-async function generateWithRef(
-  prompt: string,
-  aspectRatio: string,
-  refImage: { mimeType: string; data: string },
-): Promise<{ imageData: string; downloadUrl?: string } | null> {
+async function generateWithRef(prompt: string, aspectRatio: string, refImage: { mimeType: string; data: string }): Promise<{ imageData: string; downloadUrl?: string } | null> {
   const endpoint = `${NOVART_BASE_URL}/v1beta/models/nova-image-pro:generateContent`;
   const body = {
     contents: [{
@@ -193,21 +187,9 @@ async function generateWithRef(
   return null;
 }
 
-export async function POST(req: NextRequest) {
-  if (!NOVART_API_KEY) {
-    return NextResponse.json({ error: '未配置 API Key' }, { status: 400 });
-  }
-
-  const body = await req.json();
-  const { brandName, brandColors, sellingPoint, targetCountry, styleContext, referenceImage, sceneIndex } = body;
-
-  if (!brandName || !sellingPoint) {
-    return NextResponse.json({ error: '品牌名和卖点必填' }, { status: 400 });
-  }
-
-  const colorsHint = brandColors?.length
-    ? `Brand color palette: ${brandColors.slice(0, 3).join(', ')}. Use these as accent colors.`
-    : 'Professional, modern color palette.';
+/** 后台异步生成 */
+async function runGeneration(taskId: string, brandName: string, sellingPoint: string, targetCountry: string, styleContext: string, referenceImage: string | null, selectedScenes: number[]) {
+  const colorsHint = 'Professional, modern color palette.';
 
   const buildPrompt = (scene: typeof SCENES[0]) => [
     `Professional e-commerce advertisement for brand "${brandName}".`,
@@ -220,78 +202,114 @@ export async function POST(req: NextRequest) {
     `Requirements: Product is the hero. Aspirational but authentic. No text overlay. High resolution, sharp details.`,
   ].join('\n');
 
-  // 解析参考图（如果有）
   let refData: { mimeType: string; data: string } | null = null;
   if (referenceImage) {
     refData = await resolveReferenceImage(referenceImage);
-    if (!refData) {
-      console.error('[ADFORGE] Failed to resolve reference image');
-    }
   }
 
   const generate = refData
     ? (prompt: string, ratio: string) => generateWithRef(prompt, ratio, refData!)
     : (prompt: string, ratio: string) => generateFast(prompt, ratio);
 
-  // 单张模式
-  if (typeof sceneIndex === 'number' && sceneIndex >= 0 && sceneIndex < SCENES.length) {
-    const scene = SCENES[sceneIndex];
-    const aspectRatio = ASPECT_RATIOS[sceneIndex];
+  const task = taskStore.get(taskId)!;
+  task.status = 'generating';
+
+  for (let i = 0; i < selectedScenes.length; i++) {
+    const sceneIdx = selectedScenes[i];
+    const scene = SCENES[sceneIdx];
+    const aspectRatio = ASPECT_RATIOS[sceneIdx];
     const prompt = buildPrompt(scene);
 
-    const result = await generate(prompt, aspectRatio);
-    if (!result) {
-      return NextResponse.json({ error: `场景"${scene.label}"生成失败` }, { status: 500 });
-    }
-
-    // If we have imageData (base64), return it directly. Otherwise proxy download.
-    let imageUrl = result.imageData;
-    if (!imageUrl && result.downloadUrl) {
-      try {
-        const imgRes = await fetch(result.downloadUrl, {
-          headers: { 'Authorization': `Bearer ${NOVART_API_KEY}` },
-          signal: AbortSignal.timeout(30000),
-        });
-        if (imgRes.ok) {
-          const buf = Buffer.from(await imgRes.arrayBuffer());
-          const ct = imgRes.headers.get('content-type') || 'image/png';
-          imageUrl = `data:${ct};base64,${buf.toString('base64')}`;
-        } else {
-          imageUrl = result.downloadUrl; // fallback to raw URL
+    try {
+      const result = await generate(prompt, aspectRatio);
+      if (result) {
+        let imageUrl = result.imageData;
+        if (!imageUrl && result.downloadUrl) {
+          try {
+            const imgRes = await fetch(result.downloadUrl, {
+              headers: { 'Authorization': `Bearer ${NOVART_API_KEY}` },
+              signal: AbortSignal.timeout(30000),
+            });
+            if (imgRes.ok) {
+              const buf = Buffer.from(await imgRes.arrayBuffer());
+              const ct = imgRes.headers.get('content-type') || 'image/png';
+              imageUrl = `data:${ct};base64,${buf.toString('base64')}`;
+            } else {
+              imageUrl = result.downloadUrl;
+            }
+          } catch (e) {
+            imageUrl = result.downloadUrl;
+          }
         }
-      } catch (e) {
-        console.error('[ADFORGE] Proxy download failed:', e);
-        imageUrl = result.downloadUrl;
+
+        task.images.push({
+          url: imageUrl,
+          platform: getPlatformLabel(aspectRatio),
+          scene: scene.label,
+          ratio: aspectRatio,
+        });
+        task.completed++;
       }
-    }
-
-    return NextResponse.json({
-      image: {
-        url: imageUrl,
-        platform: getPlatformLabel(aspectRatio),
-        scene: scene.label,
-      },
-    });
-  }
-
-  // 批量模式
-  const images: any[] = [];
-  for (let i = 0; i < SCENES.length; i++) {
-    const scene = SCENES[i];
-    const prompt = buildPrompt(scene);
-    const result = await generate(prompt, ASPECT_RATIOS[i]);
-    if (result) {
-      images.push({
-        url: result.downloadUrl || result.imageData,
-        platform: getPlatformLabel(ASPECT_RATIOS[i]),
-        scene: scene.label,
-      });
+    } catch (err) {
+      console.error(`[TASK ${taskId}] Scene ${sceneIdx} failed:`, err);
     }
   }
 
-  if (images.length === 0) {
-    return NextResponse.json({ error: '全部生成失败，请稍后重试' }, { status: 500 });
+  task.status = task.images.length > 0 ? 'completed' : 'failed';
+  if (task.images.length === 0) {
+    task.error = '全部生成失败，请稍后重试';
+  }
+}
+
+/** POST: 创建任务 */
+export async function POST(req: NextRequest) {
+  if (!NOVART_API_KEY) {
+    return NextResponse.json({ error: '未配置 API Key' }, { status: 400 });
   }
 
-  return NextResponse.json({ images });
+  const body = await req.json();
+  const { brandName, sellingPoint, targetCountry, styleContext, referenceImage, selectedScenes } = body;
+
+  if (!brandName || !sellingPoint) {
+    return NextResponse.json({ error: '品牌名和卖点必填' }, { status: 400 });
+  }
+
+  const scenes = selectedScenes || [0, 1, 2, 3];
+  const taskId = `task_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  taskStore.set(taskId, {
+    status: 'pending',
+    images: [],
+    total: scenes.length,
+    completed: 0,
+  });
+
+  // Fire-and-forget: start generation in background
+  runGeneration(taskId, brandName, sellingPoint, targetCountry || 'US', styleContext || '', referenceImage || null, scenes);
+
+  return NextResponse.json({ taskId, status: 'pending', total: scenes.length });
+}
+
+/** GET: 查询任务状态 */
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const taskId = searchParams.get('taskId');
+
+  if (!taskId) {
+    return NextResponse.json({ error: '缺少taskId' }, { status: 400 });
+  }
+
+  const task = taskStore.get(taskId);
+  if (!task) {
+    return NextResponse.json({ error: '任务不存在' }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    taskId,
+    status: task.status,
+    total: task.total,
+    completed: task.completed,
+    images: task.status === 'completed' ? task.images : undefined,
+    error: task.error,
+  });
 }
