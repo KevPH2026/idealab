@@ -99,7 +99,24 @@ async function generateFast(
       const data = await res.json();
       const url = data?.data?.[0]?.url;
 
-      if (url) return { imageData: '', downloadUrl: url };
+      if (url) {
+        // Download the image and convert to base64 so frontend can display it directly
+        try {
+          const imgRes = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${NOVART_API_KEY}` },
+            signal: AbortSignal.timeout(30000),
+          });
+          if (imgRes.ok) {
+            const buf = Buffer.from(await imgRes.arrayBuffer());
+            const ct = imgRes.headers.get('content-type') || 'image/png';
+            const b64 = buf.toString('base64');
+            return { imageData: `data:${ct};base64,${b64}`, downloadUrl: url };
+          }
+        } catch (e) {
+          console.error('[ADFORGE-FAST] Download failed:', e);
+        }
+        return { imageData: '', downloadUrl: url };
+      }
 
       console.error('[ADFORGE-FAST] No image in response:', JSON.stringify(data).slice(0, 200));
     } catch (err: any) {
