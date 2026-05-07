@@ -37,7 +37,8 @@ export default function GeneratePage() {
   const [sellingPoint, setSellingPoint] = useState('');
   const [targetCountry, setTargetCountry] = useState('US');
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
-  const [selectedScenes, setSelectedScenes] = useState<number[]>([0, 1, 2, 3]);
+  const [selectedScenes, setSelectedScenes] = useState<number[]>([0, 1]);
+const [fastMode, setFastMode] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<Array<{ url: string; platform: string; scene: string; ratio: string }>>([]);
   const [error, setError] = useState('');
   const [progress, setProgress] = useState(0);
@@ -101,13 +102,13 @@ export default function GeneratePage() {
             targetCountry,
             referenceImage,
             sceneIndex: sceneIdx,
+            fastMode,
           }),
         });
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           console.error(`Scene ${sceneIdx} failed:`, res.status, err);
-          // Skip this scene and continue
           continue;
         }
 
@@ -115,7 +116,6 @@ export default function GeneratePage() {
         const imageUrl = data.image?.url;
 
         if (imageUrl) {
-          // Try to download and convert to base64 for display
           const base64Url = await downloadImageAsBase64(imageUrl);
           results.push({
             url: base64Url || imageUrl,

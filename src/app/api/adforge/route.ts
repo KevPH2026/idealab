@@ -59,8 +59,8 @@ async function resolveReferenceImage(ref: string): Promise<{ mimeType: string; d
   return null;
 }
 
-async function generateFast(prompt: string, aspectRatio: string): Promise<{ imageData: string } | null> {
-  const size = SIZE_MAP[aspectRatio] || '1024x1024';
+async function generateFast(prompt: string, aspectRatio: string, fastMode: boolean = false): Promise<{ imageData: string } | null> {
+  const size = fastMode ? '512x512' : (SIZE_MAP[aspectRatio] || '1024x1024');
   const endpoint = `${NOVART_BASE_URL}/v1/images/generations`;
 
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -72,13 +72,13 @@ async function generateFast(prompt: string, aspectRatio: string): Promise<{ imag
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'nova-image-pro-flex',
+          model: fastMode ? 'nova-image-pro-flex' : 'nova-image-pro-flex',
           prompt,
           n: 1,
           size,
           response_format: 'url',
         }),
-        signal: AbortSignal.timeout(50000),
+        signal: AbortSignal.timeout(fastMode ? 30000 : 50000),
       });
 
       if (!res.ok) {
@@ -119,7 +119,7 @@ async function generateFast(prompt: string, aspectRatio: string): Promise<{ imag
   return null;
 }
 
-async function generateWithRef(prompt: string, aspectRatio: string, refImage: { mimeType: string; data: string }): Promise<{ imageData: string } | null> {
+async function generateWithRef(prompt: string, aspectRatio: string, refImage: { mimeType: string; data: string }, fastMode: boolean = false): Promise<{ imageData: string } | null> {
   const endpoint = `${NOVART_BASE_URL}/v1beta/models/nova-image-pro:generateContent`;
   const body = {
     contents: [{
@@ -201,7 +201,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { brandName, sellingPoint, targetCountry, styleContext, referenceImage, sceneIndex } = body;
+  const { brandName, sellingPoint, targetCountry, styleContext, referenceImage, sceneIndex, fastMode } = body;
 
   if (!brandName || !sellingPoint) {
     return NextResponse.json({ error: '品牌名和卖点必填' }, { status: 400 });
@@ -233,8 +233,8 @@ export async function POST(req: NextRequest) {
   }
 
   const generate = refData
-    ? () => generateWithRef(prompt, aspectRatio, refData!)
-    : () => generateFast(prompt, aspectRatio);
+    ? () => generateWithRef(prompt, aspectRatio, refData!, fastMode)
+    : () => generateFast(prompt, aspectRatio, fastMode);
 
   const result = await generate();
 
