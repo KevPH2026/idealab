@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Sparkles, Zap, Check, Download, AlertCircle, ImagePlus, X } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Sparkles, Zap, Check, Download, AlertCircle, ImagePlus, X, Loader2 } from 'lucide-react';
 
 const SCENES = [
   { label: '晨间生活', desc: 'lifestyle morning routine, natural light' },
@@ -24,17 +24,24 @@ const PLATFORM_LABELS: Record<string, string> = {
   '3:2': 'Landscape',
 };
 
-// Demo images for preview mode
-const DEMO_IMAGES = [
-  { url: '/demo/beauty_01.webp', platform: 'IG Feed', scene: '晨间生活', ratio: '1:1' },
-  { url: '/demo/beauty_02.webp', platform: 'FB / Google', scene: '产品平铺', ratio: '16:9' },
-  { url: '/demo/beauty_03.webp', platform: 'Story / TikTok', scene: '开箱惊喜', ratio: '9:16' },
-  { url: '/demo/beauty_04.webp', platform: 'Story / TikTok', scene: '使用对比', ratio: '9:16' },
-  { url: '/demo/tech_01.webp', platform: 'IG Feed', scene: '极简产品', ratio: '1:1' },
-  { url: '/demo/tech_02.webp', platform: 'Story / TikTok', scene: '户外场景', ratio: '9:16' },
-  { url: '/demo/tech_03.webp', platform: 'FB / Google', scene: '产品平铺', ratio: '16:9' },
-  { url: '/demo/tech_06.webp', platform: 'FB / Google', scene: '户外黄金时段', ratio: '16:9' },
-];
+// Download image from Novart URL with auth, convert to base64 data URL
+async function downloadImageAsBase64(url: string): Promise<string | null> {
+  try {
+    // Try without auth first (might be public CDN)
+    const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
+    if (res.ok) {
+      const blob = await res.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+    }
+  } catch {
+    // Ignore and return null
+  }
+  return null;
+}
 
 export default function GeneratePage() {
   const [step, setStep] = useState<'form' | 'generating' | 'result'>('form');
@@ -46,6 +53,7 @@ export default function GeneratePage() {
   const [generatedImages, setGeneratedImages] = useState<Array<{ url: string; platform: string; scene: string; ratio: string }>>([]);
   const [error, setError] = useState('');
   const [progress, setProgress] = useState(0);
+  const [currentScene, setCurrentScene] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,24 +96,50 @@ export default function GeneratePage() {
     setGeneratedImages([]);
     setProgress(0);
 
-    // Demo mode: simulate generation with progress
     const results: Array<{ url: string; platform: string; scene: string; ratio: string }> = [];
 
     for (let i = 0; i < selectedScenes.length; i++) {
       const sceneIdx = selectedScenes[i];
-      setProgress(Math.round(((i + 1) / selectedScenes.length) * 100));
+      setCurrentScene(SCENES[sceneIdx].label);
+      setProgress(Math.round((i / selectedScenes.length) * 100));
 
-      // Use demo image mapped to scene
-      const demoImg = DEMO_IMAGES[sceneIdx % DEMO_IMAGES.length];
-      results.push({
-        url: demoImg.url,
-        platform: PLATFORM_LABELS[ASPECT_RATIOS[sceneIdx]] || demoImg.platform,
-        scene: SCENES[sceneIdx].label,
-        ratio: ASPECT_RATIOS[sceneIdx],
-      });
+      try {
+        const res = await fetch('/api/adforge', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            brandName: brandName.trim(),
+            sellingPoint: sellingPoint.trim(),
+            targetCountry,
+            referenceImage,
+            sceneIndex: sceneIdx,
+          }),
+        });
 
-      // Simulate delay for realistic feel
-      await new Promise(r => setTimeout(r, 800));
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.error(`Scene ${sceneIdx} failed:`, res.status, err);
+          // Skip this scene and continue
+          continue;
+        }
+
+        const data = await res.json();
+        const imageUrl = data.image?.url;
+
+        if (imageUrl) {
+          // Try to download and convert to base64 for display
+          const base64Url = await downloadImageAsBase64(imageUrl);
+          results.push({
+            url: base64Url || imageUrl,
+            platform: data.image.platform || PLATFORM_LABELS[ASPECT_RATIOS[sceneIdx]] || 'Ad',
+            scene: data.image.scene || SCENES[sceneIdx].label,
+            ratio: data.image.ratio || ASPECT_RATIOS[sceneIdx],
+          });
+          setGeneratedImages([...results]);
+        }
+      } catch (err) {
+        console.error(`Scene ${sceneIdx} error:`, err);
+      }
     }
 
     setProgress(100);
@@ -126,17 +160,27 @@ export default function GeneratePage() {
         <div className="fixed inset-0 pointer-events-none opacity-[0.12]"
           style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
         <div className="relative text-center max-w-md mx-auto px-6">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center mx-auto mb-6 animate-pulse"
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center mx-auto mb-6"
             style={{ boxShadow: '0 0 30px rgba(139,92,246,0.3)' }}>
-            <Sparkles className="w-8 h-8 text-white" />
+            <Loader2 className="w-8 h-8 text-white animate-spin" />
           </div>
           <h2 className="text-2xl font-bold mb-2">AI正在生成素材...</h2>
-          <p className="text-white/40 mb-8">预计需要 {selectedScenes.length} 秒，请稍候</p>
+          <p className="text-white/40 mb-2">正在生成：{currentScene}</p>
+          <p className="text-white/20 text-sm mb-8">每张约30-60秒，请耐心等待</p>
           <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden mb-4">
             <div className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all duration-500"
               style={{ width: `${progress}%` }} />
           </div>
-          <p className="text-sm text-white/30">{progress}% · 已生成 {Math.round(progress / 100 * selectedScenes.length)}/{selectedScenes.length} 张</p>
+          <p className="text-sm text-white/30">{progress}% · 已生成 {generatedImages.length}/{selectedScenes.length} 张</p>
+          {generatedImages.length > 0 && (
+            <div className="mt-6 grid grid-cols-2 gap-2">
+              {generatedImages.map((img, i) => (
+                <div key={i} className="rounded-lg overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <img src={img.url} alt={img.scene} className="w-full h-24 object-cover" />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -205,6 +249,19 @@ export default function GeneratePage() {
                 </div>
               ))}
             </div>
+
+            {generatedImages.length === 0 && (
+              <div className="text-center py-20">
+                <AlertCircle className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                <p className="text-white/40">生成失败，请重试</p>
+                <button
+                  onClick={() => setStep('form')}
+                  className="mt-4 px-6 py-2 rounded-xl text-sm text-white/60 hover:text-white transition-all"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  返回重试
+                </button>
+              </div>
+            )}
 
             <div className="mt-10 text-center">
               <button
@@ -360,7 +417,7 @@ export default function GeneratePage() {
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-white/20 mt-2">已选 {selectedScenes.length} 个场景 · 预计耗时 {selectedScenes.length} 秒</p>
+              <p className="text-xs text-white/20 mt-2">已选 {selectedScenes.length} 个场景 · 每张约30-60秒</p>
             </div>
 
             <button

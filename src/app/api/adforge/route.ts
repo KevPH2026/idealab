@@ -1,33 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 
-export const maxDuration = 10;
+export const maxDuration = 60;
 
 const NOVART_API_KEY = process.env.NOVART_API_KEY || '';
 const NOVART_BASE_URL = process.env.NOVART_BASE_URL || 'https://www.novartspace.art';
-const TASK_DIR = '/tmp/100x-tasks';
-
-if (!fs.existsSync(TASK_DIR)) {
-  fs.mkdirSync(TASK_DIR, { recursive: true });
-}
-
-function getTaskPath(taskId: string) {
-  return path.join(TASK_DIR, `${taskId}.json`);
-}
-
-function readTask(taskId: string) {
-  try {
-    const data = fs.readFileSync(getTaskPath(taskId), 'utf-8');
-    return JSON.parse(data);
-  } catch {
-    return null;
-  }
-}
-
-function writeTask(taskId: string, data: any) {
-  fs.writeFileSync(getTaskPath(taskId), JSON.stringify(data), 'utf-8');
-}
 
 const SCENES = [
   { desc: 'lifestyle morning routine, natural light, clean aesthetic', label: '晨间生活' },
@@ -83,7 +59,7 @@ async function resolveReferenceImage(ref: string): Promise<{ mimeType: string; d
   return null;
 }
 
-async function generateFast(prompt: string, aspectRatio: string): Promise<{ imageData: string; downloadUrl?: string } | null> {
+async function generateFast(prompt: string, aspectRatio: string): Promise<{ downloadUrl: string } | null> {
   const size = SIZE_MAP[aspectRatio] || '1024x1024';
   const endpoint = `${NOVART_BASE_URL}/v1/images/generations`;
 
@@ -102,12 +78,12 @@ async function generateFast(prompt: string, aspectRatio: string): Promise<{ imag
           size,
           response_format: 'url',
         }),
-        signal: AbortSignal.timeout(120_000),
+        signal: AbortSignal.timeout(50000),
       });
 
       if (!res.ok) {
         const err = await res.text();
-        console.error(`[ADFORGE-FAST] ${res.status}:`, err.slice(0, 200));
+        console.error(`[ADFORGE] ${res.status}:`, err.slice(0, 200));
         if (res.status === 401 || res.status === 402) return null;
         await new Promise(r => setTimeout(r, 3000 * (attempt + 1)));
         continue;
@@ -117,33 +93,19 @@ async function generateFast(prompt: string, aspectRatio: string): Promise<{ imag
       const url = data?.data?.[0]?.url;
 
       if (url) {
-        try {
-          const imgRes = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${NOVART_API_KEY}` },
-            signal: AbortSignal.timeout(30000),
-          });
-          if (imgRes.ok) {
-            const buf = Buffer.from(await imgRes.arrayBuffer());
-            const ct = imgRes.headers.get('content-type') || 'image/png';
-            const b64 = buf.toString('base64');
-            return { imageData: `data:${ct};base64,${b64}`, downloadUrl: url };
-          }
-        } catch (e) {
-          console.error('[ADFORGE-FAST] Download failed:', e);
-        }
-        return { imageData: '', downloadUrl: url };
+        return { downloadUrl: url };
       }
 
-      console.error('[ADFORGE-FAST] No image in response:', JSON.stringify(data).slice(0, 200));
+      console.error('[ADFORGE] No url in response:', JSON.stringify(data).slice(0, 200));
     } catch (err: any) {
-      console.error(`[ADFORGE-FAST] Attempt ${attempt + 1} error:`, err?.message);
+      console.error(`[ADFORGE] Attempt ${attempt + 1} error:`, err?.message);
       await new Promise(r => setTimeout(r, 3000 * (attempt + 1)));
     }
   }
   return null;
 }
 
-async function generateWithRef(prompt: string, aspectRatio: string, refImage: { mimeType: string; data: string }): Promise<{ imageData: string; downloadUrl?: string } | null> {
+async function generateWithRef(prompt: string, aspectRatio: string, refImage: { mimeType: string; data: string }): Promise<{ downloadUrl: string } | null> {
   const endpoint = `${NOVART_BASE_URL}/v1beta/models/nova-image-pro:generateContent`;
   const body = {
     contents: [{
@@ -169,7 +131,7 @@ async function generateWithRef(prompt: string, aspectRatio: string, refImage: { 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(180_000),
+        signal: AbortSignal.timeout(50000),
       });
 
       if (!res.ok) {
@@ -181,19 +143,11 @@ async function generateWithRef(prompt: string, aspectRatio: string, refImage: { 
       }
 
       const data = await res.json();
-      const parts = data?.candidates?.[0]?.content?.parts || [];
-      let imageData = '';
-      for (const p of parts) {
-        if (p.inlineData?.data) {
-          imageData = `data:${p.inlineData.mimeType || 'image/png'};base64,${p.inlineData.data}`;
-          break;
-        }
-      }
       const downloadUrl = data?.novart?.results?.[0]?.download_url;
-      if (imageData || downloadUrl) {
-        return { imageData, downloadUrl };
+      if (downloadUrl) {
+        return { downloadUrl };
       }
-      console.error('[ADFORGE-REF] No image data:', JSON.stringify(data).slice(0, 200));
+      console.error('[ADFORGE-REF] No download_url:', JSON.stringify(data).slice(0, 200));
     } catch (err: any) {
       console.error(`[ADFORGE-REF] Attempt ${attempt + 1} error:`, err?.message);
       await new Promise(r => setTimeout(r, 3000 * (attempt + 1)));
@@ -202,18 +156,36 @@ async function generateWithRef(prompt: string, aspectRatio: string, refImage: { 
   return null;
 }
 
-/** 后台异步生成 */
-async function runGeneration(taskId: string, brandName: string, sellingPoint: string, targetCountry: string, styleContext: string, referenceImage: string | null, selectedScenes: number[]) {
+/** POST: 同步生成单张图片 */
+export async function POST(req: NextRequest) {
+  if (!NOVART_API_KEY) {
+    return NextResponse.json({ error: '未配置 API Key' }, { status: 400 });
+  }
+
+  const body = await req.json();
+  const { brandName, sellingPoint, targetCountry, styleContext, referenceImage, sceneIndex } = body;
+
+  if (!brandName || !sellingPoint) {
+    return NextResponse.json({ error: '品牌名和卖点必填' }, { status: 400 });
+  }
+
+  const sceneIdx = sceneIndex ?? 0;
+  if (sceneIdx < 0 || sceneIdx >= SCENES.length) {
+    return NextResponse.json({ error: '无效的场景索引' }, { status: 400 });
+  }
+
+  const scene = SCENES[sceneIdx];
+  const aspectRatio = ASPECT_RATIOS[sceneIdx];
   const colorsHint = 'Professional, modern color palette.';
 
-  const buildPrompt = (scene: typeof SCENES[0]) => [
+  const prompt = [
     `Professional e-commerce advertisement for brand "${brandName}".`,
     `Product: ${sellingPoint}.`,
     `Scene: ${scene.desc}.`,
     `Target audience: ${targetCountry || 'US'} consumers. Match local aesthetic preferences.`,
     `Style: ${colorsHint} Clean composition, natural lighting, shallow depth of field. Premium commercial photography quality.`,
-    styleContext ? `\nBrand DNA Context (CRITICAL): ${styleContext}` : '',
-    referenceImage ? '\nCRITICAL: The attached reference image shows the brand visual style. Match its color scheme, mood, and aesthetic.' : '',
+    styleContext ? `\nBrand DNA Context: ${styleContext}` : '',
+    referenceImage ? '\nCRITICAL: Match the reference image color scheme, mood, and aesthetic.' : '',
     `Requirements: Product is the hero. Aspirational but authentic. No text overlay. High resolution, sharp details.`,
   ].join('\n');
 
@@ -223,124 +195,21 @@ async function runGeneration(taskId: string, brandName: string, sellingPoint: st
   }
 
   const generate = refData
-    ? (prompt: string, ratio: string) => generateWithRef(prompt, ratio, refData!)
-    : (prompt: string, ratio: string) => generateFast(prompt, ratio);
+    ? () => generateWithRef(prompt, aspectRatio, refData!)
+    : () => generateFast(prompt, aspectRatio);
 
-  const task = readTask(taskId);
-  if (!task) return;
-  task.status = 'generating';
-  writeTask(taskId, task);
+  const result = await generate();
 
-  for (let i = 0; i < selectedScenes.length; i++) {
-    const sceneIdx = selectedScenes[i];
-    const scene = SCENES[sceneIdx];
-    const aspectRatio = ASPECT_RATIOS[sceneIdx];
-    const prompt = buildPrompt(scene);
-
-    try {
-      const result = await generate(prompt, aspectRatio);
-      if (result) {
-        let imageUrl = result.imageData;
-        if (!imageUrl && result.downloadUrl) {
-          for (let dlAttempt = 0; dlAttempt < 3; dlAttempt++) {
-            try {
-              const imgRes = await fetch(result.downloadUrl, {
-                headers: { 'Authorization': `Bearer ${NOVART_API_KEY}` },
-                signal: AbortSignal.timeout(30000),
-              });
-              if (imgRes.ok) {
-                const buf = Buffer.from(await imgRes.arrayBuffer());
-                const ct = imgRes.headers.get('content-type') || 'image/png';
-                imageUrl = `data:${ct};base64,${buf.toString('base64')}`;
-                break;
-              }
-              console.error(`[TASK ${taskId}] Download attempt ${dlAttempt + 1} failed: ${imgRes.status}`);
-            } catch (e) {
-              console.error(`[TASK ${taskId}] Download attempt ${dlAttempt + 1} error:`, e);
-            }
-            await new Promise(r => setTimeout(r, 2000 * (dlAttempt + 1)));
-          }
-          if (!imageUrl) {
-            imageUrl = result.downloadUrl;
-          }
-        }
-
-        task.images.push({
-          url: imageUrl,
-          platform: getPlatformLabel(aspectRatio),
-          scene: scene.label,
-          ratio: aspectRatio,
-        });
-        task.completed++;
-        writeTask(taskId, task);
-      }
-    } catch (err) {
-      console.error(`[TASK ${taskId}] Scene ${sceneIdx} failed:`, err);
-    }
-  }
-
-  task.status = task.images.length > 0 ? 'completed' : 'failed';
-  if (task.images.length === 0) {
-    task.error = '全部生成失败，请稍后重试';
-  }
-  writeTask(taskId, task);
-}
-
-/** POST: 创建任务 */
-export async function POST(req: NextRequest) {
-  if (!NOVART_API_KEY) {
-    return NextResponse.json({ error: '未配置 API Key' }, { status: 400 });
-  }
-
-  const body = await req.json();
-  const { brandName, sellingPoint, targetCountry, styleContext, referenceImage, selectedScenes } = body;
-
-  if (!brandName || !sellingPoint) {
-    return NextResponse.json({ error: '品牌名和卖点必填' }, { status: 400 });
-  }
-
-  const scenes = selectedScenes || [0, 1, 2, 3];
-  const taskId = `task_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
-  writeTask(taskId, {
-    status: 'pending',
-    images: [],
-    total: scenes.length,
-    completed: 0,
-  });
-
-  // Use waitUntil to run generation in background after response is sent
-  const { waitUntil } = req as any;
-  if (waitUntil) {
-    waitUntil(runGeneration(taskId, brandName, sellingPoint, targetCountry || 'US', styleContext || '', referenceImage || null, scenes));
-  } else {
-    // Fallback: start generation without waitUntil (may be cut off by timeout)
-    runGeneration(taskId, brandName, sellingPoint, targetCountry || 'US', styleContext || '', referenceImage || null, scenes);
-  }
-
-  return NextResponse.json({ taskId, status: 'pending', total: scenes.length });
-}
-
-/** GET: 查询任务状态 */
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const taskId = searchParams.get('taskId');
-
-  if (!taskId) {
-    return NextResponse.json({ error: '缺少taskId' }, { status: 400 });
-  }
-
-  const task = readTask(taskId);
-  if (!task) {
-    return NextResponse.json({ error: '任务不存在' }, { status: 404 });
+  if (!result) {
+    return NextResponse.json({ error: '图片生成失败' }, { status: 500 });
   }
 
   return NextResponse.json({
-    taskId,
-    status: task.status,
-    total: task.total,
-    completed: task.completed,
-    images: task.status === 'completed' ? task.images : undefined,
-    error: task.error,
+    image: {
+      url: result.downloadUrl,
+      platform: getPlatformLabel(aspectRatio),
+      scene: scene.label,
+      ratio: aspectRatio,
+    },
   });
 }
