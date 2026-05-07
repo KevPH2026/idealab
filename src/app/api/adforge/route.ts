@@ -59,7 +59,7 @@ async function resolveReferenceImage(ref: string): Promise<{ mimeType: string; d
   return null;
 }
 
-async function generateFast(prompt: string, aspectRatio: string): Promise<{ downloadUrl: string } | null> {
+async function generateFast(prompt: string, aspectRatio: string): Promise<{ imageData: string } | null> {
   const size = SIZE_MAP[aspectRatio] || '1024x1024';
   const endpoint = `${NOVART_BASE_URL}/v1/images/generations`;
 
@@ -93,7 +93,21 @@ async function generateFast(prompt: string, aspectRatio: string): Promise<{ down
       const url = data?.data?.[0]?.url;
 
       if (url) {
-        return { downloadUrl: url };
+        // Download the image and convert to base64
+        try {
+          const imgRes = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${NOVART_API_KEY}` },
+            signal: AbortSignal.timeout(15000),
+          });
+          if (imgRes.ok) {
+            const buf = Buffer.from(await imgRes.arrayBuffer());
+            const ct = imgRes.headers.get('content-type') || 'image/png';
+            const b64 = buf.toString('base64');
+            return { imageData: `data:${ct};base64,${b64}` };
+          }
+        } catch (e) {
+          console.error('[ADFORGE] Download failed:', e);
+        }
       }
 
       console.error('[ADFORGE] No url in response:', JSON.stringify(data).slice(0, 200));
@@ -105,7 +119,7 @@ async function generateFast(prompt: string, aspectRatio: string): Promise<{ down
   return null;
 }
 
-async function generateWithRef(prompt: string, aspectRatio: string, refImage: { mimeType: string; data: string }): Promise<{ downloadUrl: string } | null> {
+async function generateWithRef(prompt: string, aspectRatio: string, refImage: { mimeType: string; data: string }): Promise<{ imageData: string } | null> {
   const endpoint = `${NOVART_BASE_URL}/v1beta/models/nova-image-pro:generateContent`;
   const body = {
     contents: [{
@@ -143,11 +157,35 @@ async function generateWithRef(prompt: string, aspectRatio: string, refImage: { 
       }
 
       const data = await res.json();
+      
+      // Try inlineData first
+      const parts = data?.candidates?.[0]?.content?.parts || [];
+      for (const p of parts) {
+        if (p.inlineData?.data) {
+          return { imageData: `data:${p.inlineData.mimeType || 'image/png'};base64,${p.inlineData.data}` };
+        }
+      }
+      
+      // Fallback to download_url
       const downloadUrl = data?.novart?.results?.[0]?.download_url;
       if (downloadUrl) {
-        return { downloadUrl };
+        try {
+          const imgRes = await fetch(downloadUrl, {
+            headers: { 'Authorization': `Bearer ${NOVART_API_KEY}` },
+            signal: AbortSignal.timeout(15000),
+          });
+          if (imgRes.ok) {
+            const buf = Buffer.from(await imgRes.arrayBuffer());
+            const ct = imgRes.headers.get('content-type') || 'image/png';
+            const b64 = buf.toString('base64');
+            return { imageData: `data:${ct};base64,${b64}` };
+          }
+        } catch (e) {
+          console.error('[ADFORGE-REF] Download failed:', e);
+        }
       }
-      console.error('[ADFORGE-REF] No download_url:', JSON.stringify(data).slice(0, 200));
+      
+      console.error('[ADFORGE-REF] No image data:', JSON.stringify(data).slice(0, 200));
     } catch (err: any) {
       console.error(`[ADFORGE-REF] Attempt ${attempt + 1} error:`, err?.message);
       await new Promise(r => setTimeout(r, 3000 * (attempt + 1)));
@@ -206,7 +244,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     image: {
-      url: result.downloadUrl,
+      url: result.imageData,
       platform: getPlatformLabel(aspectRatio),
       scene: scene.label,
       ratio: aspectRatio,

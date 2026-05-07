@@ -24,22 +24,10 @@ const PLATFORM_LABELS: Record<string, string> = {
   '3:2': 'Landscape',
 };
 
-// Download image from Novart URL with auth, convert to base64 data URL
+// Backend now returns base64 data URL directly, no need to download
 async function downloadImageAsBase64(url: string): Promise<string | null> {
-  try {
-    // Try without auth first (might be public CDN)
-    const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
-    if (res.ok) {
-      const blob = await res.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(blob);
-      });
-    }
-  } catch {
-    // Ignore and return null
-  }
+  // If it's already a data URL, return as-is
+  if (url.startsWith('data:')) return url;
   return null;
 }
 
