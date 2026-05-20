@@ -1,7 +1,50 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Sparkles, Zap, Check, Download, AlertCircle, ImagePlus, X, Loader2, Link2, Globe, ChevronDown } from 'lucide-react';
+import { Sparkles, Zap, Check, Download, AlertCircle, ImagePlus, X, Loader2, Link2, Globe, ChevronDown, User, LogOut, LayoutDashboard } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
+
+function UserMenu() {
+  const { data: session } = useSession();
+  const [open, setOpen] = useState(false);
+
+  if (!session?.user) {
+    return (
+      <a href="/login" className="text-xs text-white/40 hover:text-white/70 transition-all flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 hover:border-white/20">
+        <User className="w-3 h-3" />登录
+      </a>
+    );
+  }
+
+  const initial = (session.user.name || session.user.email || 'U')[0].toUpperCase();
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-xs font-bold text-white">
+          {initial}
+        </div>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-9 z-50 w-44 rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl py-1 text-sm">
+            <div className="px-3 py-2 border-b border-zinc-800">
+              <div className="text-white/80 truncate text-xs">{session.user.email}</div>
+            </div>
+            <a href="/dashboard" className="flex items-center gap-2 px-3 py-2 text-zinc-300 hover:bg-zinc-800 transition-colors">
+              <LayoutDashboard className="w-3.5 h-3.5" />我的素材库
+            </a>
+            <button onClick={() => signOut({ callbackUrl: '/' })}
+              className="w-full flex items-center gap-2 px-3 py-2 text-zinc-400 hover:bg-zinc-800 transition-colors">
+              <LogOut className="w-3.5 h-3.5" />退出登录
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 const SCENES = [
   { label: '晨间生活', desc: 'lifestyle morning routine, natural light' },
@@ -263,9 +306,10 @@ export default function GeneratePage() {
               </div>
               <span className="text-sm font-bold tracking-tight text-white/90">100x</span>
             </a>
-            <button onClick={() => setStep('form')} className="text-xs text-white/30 hover:text-white/60 transition-all">
-              ← 重新生成
-            </button>
+            <div className="flex items-center gap-3">
+              <button onClick={() => setStep('form')} className="text-xs text-white/30 hover:text-white/60 transition-all">← 重新生成</button>
+              <UserMenu />
+            </div>
           </div>
         </nav>
 
@@ -354,7 +398,10 @@ export default function GeneratePage() {
             </div>
             <span className="text-sm font-bold tracking-tight text-white/90">100x</span>
           </a>
-          <a href="/" className="text-xs text-white/30 hover:text-white/60 transition-all">← 返回首页</a>
+          <div className="flex items-center gap-3">
+            <a href="/" className="text-xs text-white/30 hover:text-white/60 transition-all">← 返回首页</a>
+            <UserMenu />
+          </div>
         </div>
       </nav>
 

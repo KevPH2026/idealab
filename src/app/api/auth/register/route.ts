@@ -1,50 +1,65 @@
-import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import { createUser, findUserByEmail } from "@/lib/notion";
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
 
 export async function POST(req: NextRequest) {
-  try {
-    const { email, password, name, brandUrl, phone } = await req.json();
+  const body = await req.json();
+  const { email, password, inviteCode, name } = body;
 
-    if (!email || !password) {
-      return NextResponse.json({ error: "邮箱和密码必填" }, { status: 400 });
-    }
+  if (!email || !password || !inviteCode) {
+    return NextResponse.json({ error: '邮箱、密码和邀请码必填' }, { status: 400 });
+  }
 
-    // 简单邮箱格式校验
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ error: "邮箱格式不正确" }, { status: 400 });
-    }
+  if (password.length < 8) {
+    return NextResponse.json({ error: '密码至少8位' }, { status: 400 });
+  }
 
-    if (password.length < 6) {
-      return NextResponse.json({ error: "密码至少6位" }, { status: 400 });
-    }
+  // 验证邀请码
+  const code = await prisma.inviteCode.findUnique({
+    where: { code: inviteCode.trim().toUpperCase() },
+    include: { usedBy: true },
+  });
 
-    if (!name || name.trim().length < 1) {
-      return NextResponse.json({ error: "姓名必填" }, { status: 400 });
-    }
+  if (!code) {
+    return NextResponse.json({ error: '邀请码无效' }, { status: 400 });
+  }
+  if (code.usedBy) {
+    return NextResponse.json({ error: '邀请码已被使用' }, { status: 400 });
+  }
 
-    // Check existing
-    const existing = await findUserByEmail(email);
-    if (existing) {
-      return NextResponse.json({ error: "该邮箱已注册" }, { status: 409 });
-    }
+  // 检查邮箱是否已注册
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    return NextResponse.json({ error: '该邮箱已注册' }, { status: 400 });
+  }
 
-    const passwordHash = await bcrypt.hash(password, 12);
+  const hashed = await bcrypt.hash(password, 12);
 
-    const user = await createUser({
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      passwordHash,
-      brandUrl: brandUrl?.trim() || undefined,
-      phone: phone?.trim() || undefined,
+  // 事务：创建用户 + 标记邀请码已使用
+  const user = await prisma.$transaction(async (tx) => {
+    const u = await tx.user.create({
+      data: {
+        email,
+        password: hashed,
+        name: name || email.split('@')[0],
+        quotaTotal: code.quota,
+        quotaUsed: 0,
+      },
     });
 
-    return NextResponse.json({ ok: true, userId: user.id });
-  } catch (err: any) {
-    if (err.message === "USER_EXISTS") {
-      return NextResponse.json({ error: "该邮箱已注册" }, { status: 409 });
-    }
-    console.error("[REGISTER]", err);
-    return NextResponse.json({ error: err.message || "注册失败" }, { status: 500 });
-  }
+    await tx.inviteCode.update({
+      where: { id: code.id },
+      data: {
+        usedBy: { connect: { id: u.id } },
+        usedAt: new Date(),
+      },
+    });
+
+    return u;
+  });
+
+  return NextResponse.json({
+    success: true,
+    user: { id: user.id, email: user.email, name: user.name, quotaTotal: user.quotaTotal },
+  });
 }
