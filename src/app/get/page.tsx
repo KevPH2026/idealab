@@ -176,6 +176,12 @@ export default function GeneratePage() {
 
   // ── 生成 ─────────────────────────────────────────────────────────
   const generate = async () => {
+    // 未登录 → 跳登录页
+    if (!session?.user) {
+      window.location.href = '/login';
+      return;
+    }
+
     if (!brandName.trim() || !sellingPoint.trim()) {
       setError('品牌名和卖点必填');
       return;
