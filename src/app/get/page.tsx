@@ -83,7 +83,7 @@ async function downloadImageAsBase64(url: string): Promise<string | null> {
 }
 
 export default function GeneratePage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [step, setStep] = useState<'form' | 'generating' | 'result'>('form');
 
   // URL 解析
@@ -177,8 +177,8 @@ export default function GeneratePage() {
 
   // ── 生成 ─────────────────────────────────────────────────────────
   const generate = async () => {
-    // 未登录 → 跳登录页
-    if (!session?.user) {
+    // 未登录 → 跳登录页（status 确认，避免 loading 时误跳）
+    if (status !== 'authenticated') {
       window.location.href = '/login';
       return;
     }
