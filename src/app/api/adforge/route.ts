@@ -42,39 +42,63 @@ function getPlatformLabel(ratio: string): string {
   return map[ratio] || ratio;
 }
 
-/** 用 MiniMax image-01 生成图片，返回可访问的 image URL */
-async function generateWithMinimax(prompt: string, aspectRatio: string): Promise<{ imageUrl: string } | null> {
+/** 用 MiniMax image-01 生成图片，支持产品参考图 */
+async function generateWithMinimax(
+  prompt: string,
+  aspectRatio: string,
+  subjectReference?: string | null,   // base64 data URL 或 http URL
+): Promise<{ imageUrl: string } | null> {
   const ratio = MINIMAX_RATIO_MAP[aspectRatio] || '1:1';
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
+      // 构建请求体——有参考图时加 subject_reference
+      const reqBody: Record<string, unknown> = {
+        model: 'image-01',
+        prompt,
+        aspect_ratio: ratio,
+        response_format: 'url',
+        n: 1,
+      };
+
+      if (subjectReference) {
+        // MiniMax subject_reference 接受 base64 或 URL
+        if (subjectReference.startsWith('data:')) {
+          // base64 data URL → 提取 base64 部分
+          const b64match = subjectReference.match(/^data:image\/[^;]+;base64,(.+)$/);
+          if (b64match) {
+            reqBody.subject_reference = [{ type: 'image', image_file: b64match[1] }];
+          }
+        } else if (subjectReference.startsWith('http')) {
+          reqBody.subject_reference = [{ type: 'image', image_url: subjectReference }];
+        }
+      }
+
       const res = await fetch('https://api.minimax.chat/v1/image_generation', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${MINIMAX_API_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: 'image-01',
-          prompt,
-          aspect_ratio: ratio,
-          response_format: 'url',
-          n: 1,
-        }),
+        body: JSON.stringify(reqBody),
         signal: AbortSignal.timeout(55000),
       });
 
       if (!res.ok) {
         const err = await res.text();
         console.error(`[ADFORGE] MiniMax ${res.status}:`, err.slice(0, 200));
-        if (res.status === 401 || res.status === 402 || res.status === 400) return null;
+        // 如果是因为 subject_reference 格式问题，降级重试（不带参考图）
+        if ((res.status === 400 || res.status === 422) && subjectReference && attempt === 0) {
+          console.log('[ADFORGE] Retrying without subject_reference...');
+          subjectReference = null;
+          continue;
+        }
+        if (res.status === 401 || res.status === 402) return null;
         await new Promise(r => setTimeout(r, 3000));
         continue;
       }
 
       const data = await res.json();
-
-      // MiniMax 返回格式: { id, data: { image_urls: [...] } }
       const urls: string[] = data?.data?.image_urls || [];
       if (urls.length > 0 && urls[0]) {
         return { imageUrl: urls[0] };
@@ -106,7 +130,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { brandName, sellingPoint, targetCountry, styleContext, sceneIndex } = body;
+  const { brandName, sellingPoint, targetCountry, styleContext, sceneIndex, referenceImage } = body;
 
   if (!brandName || !sellingPoint) {
     return NextResponse.json({ error: '品牌名和卖点必填' }, { status: 400 });
@@ -130,8 +154,8 @@ export async function POST(req: NextRequest) {
     `Requirements: Product is the hero. Aspirational but authentic. No text overlay. High resolution, sharp details.`,
   ].filter(Boolean).join('\n');
 
-  // 生成图片
-  const result = await generateWithMinimax(prompt, aspectRatio);
+  // 生成图片（传产品参考图）
+  const result = await generateWithMinimax(prompt, aspectRatio, referenceImage || null);
   if (!result) {
     return NextResponse.json({ error: '图片生成失败，请重试' }, { status: 500 });
   }

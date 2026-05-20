@@ -83,6 +83,7 @@ async function downloadImageAsBase64(url: string): Promise<string | null> {
 }
 
 export default function GeneratePage() {
+  const { data: session } = useSession();
   const [step, setStep] = useState<'form' | 'generating' | 'result'>('form');
 
   // URL 解析
