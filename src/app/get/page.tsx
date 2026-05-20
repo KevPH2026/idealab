@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Sparkles, Zap, Check, Download, AlertCircle, ImagePlus, X, Loader2 } from 'lucide-react';
+import { Sparkles, Zap, Check, Download, AlertCircle, ImagePlus, X, Loader2, Link2, Globe, ChevronDown } from 'lucide-react';
 
 const SCENES = [
   { label: '晨间生活', desc: 'lifestyle morning routine, natural light' },
@@ -24,41 +24,102 @@ const PLATFORM_LABELS: Record<string, string> = {
   '3:2': 'Landscape',
 };
 
-// Backend now returns base64 data URL directly, no need to download
+interface ScrapeData {
+  title: string;
+  description: string;
+  images: string[];
+  brand: string;
+  keywords: string[];
+  price?: string;
+  sourceUrl: string;
+}
+
 async function downloadImageAsBase64(url: string): Promise<string | null> {
-  // If it's already a data URL, return as-is
   if (url.startsWith('data:')) return url;
   return null;
 }
 
 export default function GeneratePage() {
   const [step, setStep] = useState<'form' | 'generating' | 'result'>('form');
+
+  // URL 解析
+  const [urlInput, setUrlInput] = useState('');
+  const [isScraping, setIsScraping] = useState(false);
+  const [scrapeData, setScrapeData] = useState<ScrapeData | null>(null);
+  const [scrapeError, setScrapeError] = useState('');
+  const [selectedRefImageIdx, setSelectedRefImageIdx] = useState<number>(0);
+
+  // 表单字段
   const [brandName, setBrandName] = useState('');
   const [sellingPoint, setSellingPoint] = useState('');
   const [targetCountry, setTargetCountry] = useState('US');
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const [selectedScenes, setSelectedScenes] = useState<number[]>([0, 1]);
-const [fastMode, setFastMode] = useState(false);
+  const [fastMode] = useState(false);
+
+  // 生成结果
   const [generatedImages, setGeneratedImages] = useState<Array<{ url: string; platform: string; scene: string; ratio: string }>>([]);
   const [error, setError] = useState('');
   const [progress, setProgress] = useState(0);
   const [currentScene, setCurrentScene] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ── URL 解析 ─────────────────────────────────────────────────────
+  const handleScrape = async () => {
+    if (!urlInput.trim()) return;
+    setIsScraping(true);
+    setScrapeError('');
+    setScrapeData(null);
+
+    try {
+      const res = await fetch('/api/scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: urlInput.trim() }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setScrapeError(json.error || '解析失败');
+        return;
+      }
+
+      const data: ScrapeData = json.data;
+      setScrapeData(data);
+      setSelectedRefImageIdx(0);
+
+      // 自动填充表单
+      if (data.brand && !brandName) setBrandName(data.brand);
+      const desc = [data.title, data.description].filter(Boolean).join(' · ');
+      if (desc && !sellingPoint) setSellingPoint(desc.slice(0, 200));
+
+      // 自动选第一张图作为参考图
+      if (data.images[0]) {
+        setReferenceImage(data.images[0]);
+      }
+    } catch {
+      setScrapeError('网络错误，请检查网址后重试');
+    } finally {
+      setIsScraping(false);
+    }
+  };
+
+  const handleSelectRefImage = (idx: number, imgUrl: string) => {
+    setSelectedRefImageIdx(idx);
+    setReferenceImage(imgUrl);
+  };
+
+  // ── 文件上传 ─────────────────────────────────────────────────────
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setError('请上传图片文件');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setError('图片大小不能超过5MB');
-      return;
-    }
+    if (!file.type.startsWith('image/')) { setError('请上传图片文件'); return; }
+    if (file.size > 5 * 1024 * 1024) { setError('图片大小不能超过5MB'); return; }
     const reader = new FileReader();
     reader.onload = () => {
       setReferenceImage(reader.result as string);
+      setScrapeData(null); // 手动上传时清除解析结果选中状态
       setError('');
     };
     reader.readAsDataURL(file);
@@ -70,6 +131,7 @@ const [fastMode, setFastMode] = useState(false);
     );
   };
 
+  // ── 生成 ─────────────────────────────────────────────────────────
   const generate = async () => {
     if (!brandName.trim() || !sellingPoint.trim()) {
       setError('品牌名和卖点必填');
@@ -84,6 +146,14 @@ const [fastMode, setFastMode] = useState(false);
     setError('');
     setGeneratedImages([]);
     setProgress(0);
+
+    // 构建 styleContext — 把关键词注入 prompt
+    const styleContext = scrapeData
+      ? [
+          scrapeData.keywords.length ? `Keywords: ${scrapeData.keywords.join(', ')}` : '',
+          scrapeData.price ? `Price point: ${scrapeData.price}` : '',
+        ].filter(Boolean).join('. ')
+      : '';
 
     const results: Array<{ url: string; platform: string; scene: string; ratio: string }> = [];
 
@@ -101,6 +171,7 @@ const [fastMode, setFastMode] = useState(false);
             sellingPoint: sellingPoint.trim(),
             targetCountry,
             referenceImage,
+            styleContext,
             sceneIndex: sceneIdx,
             fastMode,
           }),
@@ -142,6 +213,7 @@ const [fastMode, setFastMode] = useState(false);
     a.click();
   };
 
+  // ── 生成中 ────────────────────────────────────────────────────────
   if (step === 'generating') {
     return (
       <div className="min-h-screen bg-[#050507] text-white flex items-center justify-center">
@@ -174,6 +246,7 @@ const [fastMode, setFastMode] = useState(false);
     );
   }
 
+  // ── 结果页 ────────────────────────────────────────────────────────
   if (step === 'result') {
     return (
       <div className="min-h-screen bg-[#050507] text-white">
@@ -213,8 +286,7 @@ const [fastMode, setFastMode] = useState(false);
                 <div key={i} className="group relative rounded-2xl overflow-hidden"
                   style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div className="relative aspect-square">
-                    <img src={img.url} alt={img.scene}
-                      className="w-full h-full object-cover" />
+                    <img src={img.url} alt={img.scene} className="w-full h-full object-cover" />
                     <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2 py-1 rounded-lg"
                       style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.08)' }}>
                       <span className="text-[10px] font-medium text-white/70">{img.platform}</span>
@@ -266,6 +338,7 @@ const [fastMode, setFastMode] = useState(false);
     );
   }
 
+  // ── 表单页 ────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#050507] text-white">
       <div className="fixed inset-0 pointer-events-none opacity-[0.12]"
@@ -294,7 +367,7 @@ const [fastMode, setFastMode] = useState(false);
               AI生成广告素材
             </div>
             <h1 className="text-3xl font-black mb-2">生成你的品牌素材</h1>
-            <p className="text-white/30">填写品牌信息，AI自动生成多平台广告素材</p>
+            <p className="text-white/30">粘贴产品网址，AI自动解析内容并生成多平台广告素材</p>
           </div>
 
           {error && (
@@ -306,6 +379,125 @@ const [fastMode, setFastMode] = useState(false);
           )}
 
           <div className="space-y-6">
+
+            {/* ── Step 0: URL 解析区块 ─────────────────────────────── */}
+            <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(139,92,246,0.25)', background: 'rgba(139,92,246,0.04)' }}>
+              <div className="px-5 pt-5 pb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Globe className="w-4 h-4 text-violet-400" />
+                  <span className="text-sm font-semibold text-white/80">从网址解析产品信息</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                    style={{ background: 'rgba(139,92,246,0.15)', color: 'rgba(196,181,253,0.8)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                    推荐
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1 relative">
+                    <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
+                    <input
+                      type="url"
+                      value={urlInput}
+                      onChange={e => setUrlInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleScrape()}
+                      placeholder="粘贴产品页网址，例如 amazon.com/dp/..."
+                      className="w-full pl-10 pr-4 py-3 rounded-xl text-sm text-white placeholder:text-white/20 outline-none transition-all"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    />
+                  </div>
+                  <button
+                    onClick={handleScrape}
+                    disabled={isScraping || !urlInput.trim()}
+                    className="px-5 py-3 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                    style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)' }}
+                  >
+                    {isScraping ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                    {isScraping ? '解析中...' : '解析'}
+                  </button>
+                </div>
+
+                {scrapeError && (
+                  <p className="mt-2 text-xs text-red-400 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> {scrapeError}
+                  </p>
+                )}
+              </div>
+
+              {/* 解析结果预览 */}
+              {scrapeData && (
+                <div className="px-5 pb-5 pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="flex items-center gap-2 mb-3 mt-3">
+                    <Check className="w-3.5 h-3.5 text-green-400" />
+                    <span className="text-xs text-green-400 font-medium">解析成功</span>
+                    <span className="text-xs text-white/20 truncate">{scrapeData.sourceUrl}</span>
+                  </div>
+
+                  {/* 提取到的图片 */}
+                  {scrapeData.images.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-[11px] text-white/30 mb-2">选择参考图（AI将参考此图生成素材）</p>
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {scrapeData.images.map((img, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleSelectRefImage(idx, img)}
+                            className="relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden transition-all"
+                            style={{
+                              border: selectedRefImageIdx === idx
+                                ? '2px solid rgba(139,92,246,0.8)'
+                                : '2px solid rgba(255,255,255,0.08)',
+                            }}
+                          >
+                            <img src={img} alt={`参考图${idx + 1}`} className="w-full h-full object-cover" />
+                            {selectedRefImageIdx === idx && (
+                              <div className="absolute inset-0 flex items-center justify-center"
+                                style={{ background: 'rgba(139,92,246,0.3)' }}>
+                                <Check className="w-5 h-5 text-white" />
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 提取到的文本信息 */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {scrapeData.brand && (
+                      <div className="px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <p className="text-white/30 mb-0.5">品牌</p>
+                        <p className="text-white/70 font-medium truncate">{scrapeData.brand}</p>
+                      </div>
+                    )}
+                    {scrapeData.price && (
+                      <div className="px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <p className="text-white/30 mb-0.5">价格</p>
+                        <p className="text-white/70 font-medium truncate">{scrapeData.price}</p>
+                      </div>
+                    )}
+                    {scrapeData.keywords.length > 0 && (
+                      <div className="col-span-2 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <p className="text-white/30 mb-1.5">关键词</p>
+                        <div className="flex flex-wrap gap-1">
+                          {scrapeData.keywords.slice(0, 6).map((kw, i) => (
+                            <span key={i} className="px-2 py-0.5 rounded-full text-[10px]"
+                              style={{ background: 'rgba(139,92,246,0.1)', color: 'rgba(196,181,253,0.7)', border: '1px solid rgba(139,92,246,0.15)' }}>
+                              {kw}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-3 flex items-center gap-1.5 text-[11px] text-white/20">
+                    <ChevronDown className="w-3 h-3" />
+                    品牌名和卖点已自动填入下方，可直接修改
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── 品牌名 ─────────────────────────────────────────── */}
             <div>
               <label className="block text-sm font-medium text-white/60 mb-2">品牌名称 *</label>
               <input
@@ -318,6 +510,7 @@ const [fastMode, setFastMode] = useState(false);
               />
             </div>
 
+            {/* ── 产品卖点 ────────────────────────────────────────── */}
             <div>
               <label className="block text-sm font-medium text-white/60 mb-2">产品卖点 *</label>
               <textarea
@@ -330,6 +523,7 @@ const [fastMode, setFastMode] = useState(false);
               />
             </div>
 
+            {/* ── 目标市场 ────────────────────────────────────────── */}
             <div>
               <label className="block text-sm font-medium text-white/60 mb-2">目标市场</label>
               <select
@@ -348,39 +542,36 @@ const [fastMode, setFastMode] = useState(false);
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-white/60 mb-2">品牌参考图（可选）</label>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                accept="image/*"
-                className="hidden"
-              />
-              {referenceImage ? (
-                <div className="relative rounded-xl overflow-hidden"
-                  style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
-                  <img src={referenceImage} alt="参考图" className="w-full h-48 object-cover" />
+            {/* ── 参考图（手动上传，当没有从URL解析到图时显示） */}
+            {!scrapeData && (
+              <div>
+                <label className="block text-sm font-medium text-white/60 mb-2">品牌参考图（可选）</label>
+                <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
+                {referenceImage ? (
+                  <div className="relative rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <img src={referenceImage} alt="参考图" className="w-full h-48 object-cover" />
+                    <button
+                      onClick={() => setReferenceImage(null)}
+                      className="absolute top-2 right-2 w-8 h-8 rounded-lg flex items-center justify-center"
+                      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}>
+                      <X className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+                ) : (
                   <button
-                    onClick={() => setReferenceImage(null)}
-                    className="absolute top-2 right-2 w-8 h-8 rounded-lg flex items-center justify-center"
-                    style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}>
-                    <X className="w-4 h-4 text-white" />
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full py-8 rounded-xl flex flex-col items-center gap-2 transition-all hover:bg-white/[0.03]"
+                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.15)' }}
+                  >
+                    <ImagePlus className="w-8 h-8 text-white/20" />
+                    <span className="text-sm text-white/30">点击上传品牌参考图</span>
+                    <span className="text-xs text-white/15">支持 JPG/PNG，最大 5MB</span>
                   </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full py-8 rounded-xl flex flex-col items-center gap-2 transition-all hover:bg-white/[0.03]"
-                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.15)' }}
-                >
-                  <ImagePlus className="w-8 h-8 text-white/20" />
-                  <span className="text-sm text-white/30">点击上传品牌参考图</span>
-                  <span className="text-xs text-white/15">支持 JPG/PNG，最大 5MB</span>
-                </button>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
+            {/* ── 场景选择 ────────────────────────────────────────── */}
             <div>
               <label className="block text-sm font-medium text-white/60 mb-3">选择生成场景 *</label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -408,10 +599,10 @@ const [fastMode, setFastMode] = useState(false);
               <p className="text-xs text-white/20 mt-2">已选 {selectedScenes.length} 个场景 · 每张约30-60秒</p>
             </div>
 
+            {/* ── 生成按钮 ────────────────────────────────────────── */}
             <button
               onClick={generate}
-              disabled={false}
-              className="w-full py-4 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              className="w-full py-4 rounded-xl text-sm font-bold text-white transition-all"
               style={{
                 background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
                 boxShadow: '0 0 30px rgba(139,92,246,0.3)',
