@@ -62,15 +62,15 @@ async function generateWithMinimax(
       };
 
       if (subjectReference) {
-        // MiniMax subject_reference 接受 base64 或 URL
-        if (subjectReference.startsWith('data:')) {
-          // base64 data URL → 提取 base64 部分
+        // MiniMax style_reference: 用产品图作为风格参考（色调/视觉风格）
+        // 注意: subject_reference 仅支持人物，产品图用 style_reference
+        if (subjectReference.startsWith('http')) {
+          reqBody.style_reference = [{ type: 'image', image_url: subjectReference }];
+        } else if (subjectReference.startsWith('data:')) {
           const b64match = subjectReference.match(/^data:image\/[^;]+;base64,(.+)$/);
           if (b64match) {
-            reqBody.subject_reference = [{ type: 'image', image_file: b64match[1] }];
+            reqBody.style_reference = [{ type: 'image', image_file: b64match[1] }];
           }
-        } else if (subjectReference.startsWith('http')) {
-          reqBody.subject_reference = [{ type: 'image', image_url: subjectReference }];
         }
       }
 
@@ -87,18 +87,23 @@ async function generateWithMinimax(
       if (!res.ok) {
         const err = await res.text();
         console.error(`[ADFORGE] MiniMax ${res.status}:`, err.slice(0, 200));
-        // 如果是因为 subject_reference 格式问题，降级重试（不带参考图）
-        if ((res.status === 400 || res.status === 422) && subjectReference && attempt === 0) {
-          console.log('[ADFORGE] Retrying without subject_reference...');
-          subjectReference = null;
-          continue;
-        }
         if (res.status === 401 || res.status === 402) return null;
         await new Promise(r => setTimeout(r, 3000));
         continue;
       }
 
       const data = await res.json();
+      // 检查业务错误码（如 style_reference 格式问题），降级重试
+      if (data?.base_resp?.status_code && data.base_resp.status_code !== 0) {
+        console.error('[ADFORGE] MiniMax business error:', data.base_resp);
+        if (subjectReference && attempt === 0) {
+          console.log('[ADFORGE] Retrying without style_reference...');
+          delete reqBody.style_reference;
+          subjectReference = null;
+          continue;
+        }
+        return null;
+      }
       const urls: string[] = data?.data?.image_urls || [];
       if (urls.length > 0 && urls[0]) {
         return { imageUrl: urls[0] };
