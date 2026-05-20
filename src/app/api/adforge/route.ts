@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { prisma } from '@/lib/prisma';
 
 export const maxDuration = 60;
 
@@ -240,6 +242,39 @@ export async function POST(req: NextRequest) {
 
   if (!result) {
     return NextResponse.json({ error: '图片生成失败' }, { status: 500 });
+  }
+
+  // 如果已登录：消耗 quota + 写 assets 表
+  const session = await auth();
+  if (session?.user?.id) {
+    const userId = session.user.id;
+    try {
+      // 检查 quota
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { quotaTotal: true, quotaUsed: true } });
+      if (user && user.quotaUsed < user.quotaTotal) {
+        // 原子消耗 quota + 写 asset
+        await prisma.$transaction([
+          prisma.user.update({
+            where: { id: userId },
+            data: { quotaUsed: { increment: 1 } },
+          }),
+          prisma.asset.create({
+            data: {
+              userId,
+              imageUrl: result.imageData,   // 存 base64，MVP 方案
+              brandName,
+              platform: getPlatformLabel(aspectRatio),
+              sceneLabel: scene.label,
+              aspectRatio,
+              sourceUrl: body.sourceUrl || null,
+            },
+          }),
+        ]);
+      }
+    } catch (e) {
+      console.error('[ADFORGE] DB write failed:', e);
+      // 不影响主流程，继续返回图片
+    }
   }
 
   return NextResponse.json({
